@@ -11,7 +11,7 @@ defmodule Zot.Template do
   defmacro __using__(_) do
     quote do
       import unquote(__MODULE__)
-      import Zot.Helpers, only: [is_non_empty_string: 1]
+      import Zot.Helpers, only: [is_mfa: 1, is_non_empty_string: 1, resolve: 1]
       import Zot.Parameterized, only: [merge_params: 2]
 
       @builder true

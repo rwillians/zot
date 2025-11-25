@@ -93,8 +93,6 @@ defmodule Zot do
       {:ok, ~U[2025-11-22 13:45:00.000Z]}
 
   """
-  @spec date_time() :: Zot.Type.DateTime.t()
-
   defdelegate date_time, to: Zot.Type.DateTime, as: :new
 
   @doc ~S"""
@@ -128,8 +126,33 @@ defmodule Zot do
       "is not a valid email address"
 
   """
-
   defdelegate email(opts \\ []), to: Zot.Type.Email, as: :new
+
+  @doc ~S"""
+  Defines a type that accepts float values.
+
+  ## Examples
+
+      iex> Z.float()
+      iex> |> Z.parse(3.14)
+      {:ok, 3.14}
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.float()
+      iex>   |> Z.parse("3.14")
+      iex>
+      iex> Exception.message(issue)
+      "expected type float, got string"
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.float()
+      iex>   |> Z.parse(3)
+      iex>
+      iex> Exception.message(issue)
+      "expected type float, got integer"
+
+  """
+  defdelegate float, to: Zot.Type.Float, as: :new
 
   @doc ~S"""
   Defines a type that accepts string values.

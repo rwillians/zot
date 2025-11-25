@@ -150,7 +150,11 @@ defmodule Zot.Helpers do
   def unionize([]), do: quote(do: none)
 
   def unionize([_ | _] = types) do
-    [last | rest] = :lists.reverse(types)
+    [last | rest] =
+      types
+      |> Enum.uniq()
+      |> :lists.reverse()
+
     Enum.reduce(rest, last, &{:|, [], [&1, &2]})
   end
 end
