@@ -4,6 +4,7 @@ defmodule Zot do
   """
 
   require Zot.Type
+  require Zot.Type.Boolean
   require Zot.Type.String
 
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -22,7 +23,30 @@ defmodule Zot do
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
   @doc ~S"""
-  Defines a zot type that accepts strings.
+  Defines a type that accepts boolean values.
+
+  ## Examples
+
+      iex> Z.boolean()
+      iex> |> Z.parse(true)
+      {:ok, true}
+
+      iex> Z.boolean()
+      iex> |> Z.parse(false)
+      {:ok, false}
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.boolean()
+      iex>   |> Z.parse("true")
+      iex>
+      iex> Exception.message(issue)
+      "expected type boolean, got string"
+
+  """
+  defdelegate boolean, to: Zot.Type.Boolean, as: :new
+
+  @doc ~S"""
+  Defines a type that accepts strings.
 
   ## Examples
 
