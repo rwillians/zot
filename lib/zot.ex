@@ -3,12 +3,6 @@ defmodule Zot do
   A schema parser and validator library inspired by JavaScript's Zod.
   """
 
-  require Zot.Type
-  require Zot.Type.Boolean
-  require Zot.Type.DateTime
-  require Zot.Type.Email
-  require Zot.Type.String
-
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
   #                               PROTOCOL API                                #
   #                      keep them sorted alphabetically                      #
@@ -153,6 +147,32 @@ defmodule Zot do
 
   """
   defdelegate float, to: Zot.Type.Float, as: :new
+
+  @doc ~S"""
+  Defines a type that accepts integer values.
+
+  ## Examples
+
+      iex> Z.integer()
+      iex> |> Z.parse(3)
+      {:ok, 3}
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.integer()
+      iex>   |> Z.parse("3")
+      iex>
+      iex> Exception.message(issue)
+      "expected type integer, got string"
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.integer()
+      iex>   |> Z.parse(3.14)
+      iex>
+      iex> Exception.message(issue)
+      "expected type integer, got float"
+
+  """
+  defdelegate integer, to: Zot.Type.Integer, as: :new
 
   @doc ~S"""
   Defines a type that accepts string values.
