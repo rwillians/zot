@@ -13,7 +13,7 @@ defmodule Zot.Commons do
   defmacro __using__(_) do
     quote do
       import unquote(__MODULE__)
-      import Zot.Issue, only: [issue: 1, issue: 2]
+      import Zot.Issue, only: [append_path: 2, issue: 1, issue: 2, prepend_path: 2]
     end
   end
 

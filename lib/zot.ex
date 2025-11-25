@@ -175,6 +175,58 @@ defmodule Zot do
   defdelegate integer, to: Zot.Type.Integer, as: :new
 
   @doc ~S"""
+  Defines a zot type that accepts a list of a given inner zot type.
+
+  ## Examples
+
+      iex> Z.integer()
+      iex> |> Z.list()
+      iex> |> Z.parse([1, 2, 3, 4, 5])
+      {:ok, [1, 2, 3, 4, 5]}
+
+      iex> Z.integer()
+      iex> |> Z.list()
+      iex> |> Z.parse([])
+      {:ok, []}
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.integer()
+      iex>   |> Z.list()
+      iex>   |> Z.parse([1, "2", 3])
+      iex>
+      iex> assert [1] = issue.path
+      iex>
+      iex> Exception.message(issue)
+      "expected type integer, got string"
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.integer()
+      iex>   |> Z.list(length: 2)
+      iex>   |> Z.parse([1, 2, 3])
+      iex>
+      iex> Exception.message(issue)
+      "should have exactly 2 items, got 3 items"
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.integer()
+      iex>   |> Z.list(min: 3)
+      iex>   |> Z.parse([1, 2])
+      iex>
+      iex> Exception.message(issue)
+      "should have at least 3 items, got 2 items"
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.integer()
+      iex>   |> Z.list(max: 2)
+      iex>   |> Z.parse([1, 2, 3])
+      iex>
+      iex> Exception.message(issue)
+      "should have at most 2 items, got 3 items"
+
+  """
+  defdelegate list(inner_type, opts \\ []), to: Zot.Type.List, as: :new
+
+  @doc ~S"""
   Defines a type that accepts number values (float or integer).
 
   ## Examples
