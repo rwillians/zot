@@ -4,7 +4,7 @@ defmodule Zot.Commons do
   `Zot.Type` protocol.
   """
 
-  import Zot.Helpers, only: [nes: 1, typeof: 1]
+  import Zot.Helpers, only: [human_readable_list: 2, nes: 1, typeof: 1]
   import Zot.Issue
 
   @doc ~S"""
@@ -110,6 +110,16 @@ defmodule Zot.Commons do
     case typeof(value) do
       ^expected -> :ok
       actual -> {:error, [issue("expected type %{expected}, got %{actual}", expected: expected, actual: actual)]}
+    end
+  end
+
+  def validate_type(value, [_ | _] = expected) do
+    with false <- Enum.any?(expected, &(typeof(value) == &1)) do
+      expected_str = human_readable_list(expected, conjunction: :or)
+
+      {:error, [issue("expected type %{expected}, got %{actual}", expected: expected_str, actual: typeof(value))]}
+    else
+      true -> :ok
     end
   end
 end

@@ -73,6 +73,34 @@ defmodule Zot.Helpers do
   def deunionize(other), do: [other]
 
   @doc ~S"""
+  Returns a human-readable list as string from the given list.
+  """
+  @spec human_readable_list([value, ...], [option]) :: String.t()
+        when value: String.t() | String.Chars.t(),
+             option: {:conjunction, :and | :or}
+
+  def human_readable_list([head]), do: "#{head}"
+
+  def human_readable_list([_, _ | _] = list, opts \\ []) do
+    conjunction =
+      case Keyword.get(opts, :conjunction, :and) do
+        :and -> "and"
+        :or -> "or"
+        value -> raise(ArgumentError, "Expected conjunction to be either :and or :or, got: #{inspect(value)}")
+      end
+
+    [last, second_last | rest] =
+      list
+      |> Enum.map(&to_string/1)
+      |> :lists.reverse()
+
+    rest
+    |> :lists.reverse()
+    |> Enum.concat(["#{second_last} #{conjunction} #{last}"])
+    |> Enum.join(", ")
+  end
+
+  @doc ~S"""
   Invokes the given mfa or function.
   """
   @spec invoke(mfa | (() -> term)) :: term

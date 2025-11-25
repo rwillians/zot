@@ -175,6 +175,29 @@ defmodule Zot do
   defdelegate integer, to: Zot.Type.Integer, as: :new
 
   @doc ~S"""
+  Defines a type that accepts number values (float or integer).
+
+  ## Examples
+
+      iex> Z.number()
+      iex> |> Z.parse(42)
+      {:ok, 42}
+
+      iex> Z.number()
+      iex> |> Z.parse(3.14)
+      {:ok, 3.14}
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.number()
+      iex>   |> Z.parse("42")
+      iex>
+      iex> Exception.message(issue)
+      "expected type integer or float, got string"
+
+  """
+  defdelegate number, to: Zot.Type.Number, as: :new
+
+  @doc ~S"""
   Defines a type that accepts string values.
 
   ## Examples
