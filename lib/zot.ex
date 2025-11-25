@@ -5,6 +5,8 @@ defmodule Zot do
 
   require Zot.Type
   require Zot.Type.Boolean
+  require Zot.Type.DateTime
+  require Zot.Type.Email
   require Zot.Type.String
 
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -46,7 +48,7 @@ defmodule Zot do
   defdelegate boolean, to: Zot.Type.Boolean, as: :new
 
   @doc ~S"""
-  Defines a zot type that accepts date-times (ISO 8601).
+  Defines a zot type that accepts date-times (ISO 8601) values.
 
   ## Examples
 
@@ -96,7 +98,41 @@ defmodule Zot do
   defdelegate date_time, to: Zot.Type.DateTime, as: :new
 
   @doc ~S"""
-  Defines a type that accepts strings.
+  Defines a type that accepts email address values.
+
+  ## Examples
+
+      iex> Z.email()
+      iex> |> Z.parse("user@example.com")
+      {:ok, "user@example.com"}
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.email()
+      iex>   |> Z.parse("")
+      iex>
+      iex> Exception.message(issue)
+      "is not a valid email address"
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.email()
+      iex>   |> Z.parse("user")
+      iex>
+      iex> Exception.message(issue)
+      "is not a valid email address"
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.email()
+      iex>   |> Z.parse("@example.com")
+      iex>
+      iex> Exception.message(issue)
+      "is not a valid email address"
+
+  """
+
+  defdelegate email(opts \\ []), to: Zot.Type.Email, as: :new
+
+  @doc ~S"""
+  Defines a type that accepts string values.
 
   ## Examples
 
