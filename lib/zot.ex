@@ -46,6 +46,56 @@ defmodule Zot do
   defdelegate boolean, to: Zot.Type.Boolean, as: :new
 
   @doc ~S"""
+  Defines a zot type that accepts date-times (ISO 8601).
+
+  ## Examples
+
+      iex> Z.date_time()
+      iex> |> Z.parse(~U[2025-11-22T13:45:00.000Z])
+      {:ok, ~U[2025-11-22T13:45:00.000Z]}
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.date_time()
+      iex>   |> Z.parse("2025-11-22T13:45:00.000Z")
+      iex>
+      iex> Exception.message(issue)
+      "expected type DateTime, got string"
+
+      iex> Z.date_time()
+      iex> |> Z.parse("2025-11-22T13:45:00.000Z", coerce: true)
+      {:ok, ~U[2025-11-22T13:45:00.000Z]}
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.date_time()
+      iex>   |> Z.parse("2025-11-22T13:45:00.000", coerce: true)
+      iex>
+      iex> Exception.message(issue)
+      "is missing the timezone offset"
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.date_time()
+      iex>   |> Z.parse("2025-14-22T13:45:00.000Z", coerce: true)
+      iex>
+      iex> Exception.message(issue)
+      "is not a valid ISO 8601 date-time string"
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.date_time()
+      iex>   |> Z.parse("2025-11-22T25:45:00.000Z", coerce: true)
+      iex>
+      iex> Exception.message(issue)
+      "is not a valid ISO 8601 date-time string"
+
+      iex> Z.date_time()
+      iex> |> Z.parse("2025-11-22T13:45:00.000-00:00", coerce: true)
+      {:ok, ~U[2025-11-22 13:45:00.000Z]}
+
+  """
+  @spec date_time() :: Zot.Type.DateTime.t()
+
+  defdelegate date_time, to: Zot.Type.DateTime, as: :new
+
+  @doc ~S"""
   Defines a type that accepts strings.
 
   ## Examples
