@@ -135,7 +135,7 @@ defmodule Zot.Template do
        {:raise, [context: __MODULE__, imports: [{1, Kernel}, {2, Kernel}]],
         [
           {:__aliases__, [alias: false], [:ArgumentError]},
-          {:<<>>, [], ["Unknown option :", interpolate(modifier), " for ", name(mod), ".new/1"]}
+          {:<<>>, [], ["[", name(mod), ".new/1] ", "Unknown option :", interpolate(modifier)]}
         ]}
      ]}
   end

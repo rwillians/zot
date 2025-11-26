@@ -123,6 +123,58 @@ defmodule Zot do
   defdelegate email(opts \\ []), to: Zot.Type.Email, as: :new
 
   @doc ~S"""
+  Defines a type that accepts only a predefined set of values.
+
+  ## Examples
+
+      iex> Z.enum([:foo, :bar])
+      iex> |> Z.parse(:foo)
+      {:ok, :foo}
+
+      iex> Z.enum(["foo", "bar"])
+      iex> |> Z.parse("foo")
+      {:ok, "foo"}
+
+      iex> Z.enum([1, 2, 3, 5, 8, 13])
+      iex> |> Z.parse(13)
+      {:ok, 13}
+
+      iex> Z.enum([:foo, "bar", 3])
+      ** (ArgumentError) [Zot.Type.Enum.new/1] Values must be a list of atom, non-empty string or integer, where all values are of the same type.
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.enum([:foo, :bar])
+      iex>   |> Z.parse(:baz)
+      iex>
+      iex> Exception.message(issue)
+      "expected one of :foo or :bar, got :baz"
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.enum([:foo, :bar])
+      iex>   |> Z.parse("foo")
+      iex>
+      iex> Exception.message(issue)
+      "expected one of :foo or :bar, got 'foo'"
+
+      iex> Z.enum([:foo, :bar])
+      iex> |> Z.parse("foo", coerce: true)
+      {:ok, :foo}
+
+      iex> Z.enum([1, 2, 3, 5, 8, 13])
+      iex> |> Z.parse("13", coerce: true)
+      {:ok, 13}
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.enum([:foo, :bar])
+      iex>   |> Z.parse(true)
+      iex>
+      iex> Exception.message(issue)
+      "expected type atom, string or integer, got boolean"
+
+  """
+  defdelegate enum(values), to: Zot.Type.Enum, as: :new
+
+  @doc ~S"""
   Defines a type that accepts float values.
 
   ## Examples

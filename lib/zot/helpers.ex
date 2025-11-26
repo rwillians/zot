@@ -6,6 +6,16 @@ defmodule Zot.Helpers do
   #                 keep them sorted alphabetically                 #
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+  # @doc ~S"""
+  # Guard clause that matches a keyword (as best as it can).
+  # """
+  # defguard is_keyword(value)
+  #          when is_list(value) and
+  #                 (length(value) == 0 or
+  #                    (is_tuple(hd(value)) and
+  #                       tuple_size(hd(value)) == 2 and
+  #                       is_atom(elem(hd(value), 0))))
+
   @doc ~S"""
   Guard clause that matches an `mfa` tuple.
   """
@@ -103,7 +113,7 @@ defmodule Zot.Helpers do
   @doc ~S"""
   Invokes the given mfa or function.
   """
-  @spec invoke(mfa | (() -> term)) :: term
+  @spec invoke(mfa | (-> term)) :: term
 
   def invoke({m, f, a} = mfa) when is_mfa(mfa), do: apply(m, f, a)
   def invoke(fun) when is_function(fun, 0), do: fun.()
@@ -141,8 +151,7 @@ defmodule Zot.Helpers do
   @doc ~S"""
   Resolves a value that may be an mfa or a function.
   """
-  @spec resolve(mfa | (() -> term) | term) :: term\
-
+  @spec resolve(mfa | (-> term) | term) :: term
   def resolve(mfa) when is_mfa(mfa), do: invoke(mfa)
   def resolve(fun) when is_function(fun, 0), do: fun.()
   def resolve(value), do: value
