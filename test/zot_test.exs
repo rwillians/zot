@@ -6,11 +6,11 @@ defmodule ZotTest do
   doctest Zot
 
   test "calling new/1 with an invalid modifier raises an ArgumentError" do
-    assert_raise ArgumentError, "[Zot.Type.String.new/1] Unknown option :foo", fn ->
+    assert_raise ArgumentError, "Unknown option :foo", fn ->
       Zot.Type.String.new(foo: true)
     end
 
-    assert_raise ArgumentError, "[Zot.Type.String.new/1] Unknown option :foo", fn ->
+    assert_raise ArgumentError, "Unknown option :foo", fn ->
       Zot.Type.String.new(foo: {true, []})
     end
   end

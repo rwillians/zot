@@ -19,11 +19,16 @@ defmodule Zot.Issue do
   - `__meta__`: a map of metadata used internally by zot.
   """
   @type t :: %Zot.Issue{
-          path: [atom | String.t()],
+          path: [],
           template: String.t(),
           context: keyword,
           __meta__: map
         }
+
+  @typedoc ~S"""
+  A segment in the path to the value where the issue was found.
+  """
+  @type segment :: atom | String.t() | integer
 
   defexception path: [],
                template: nil,
@@ -46,19 +51,27 @@ defmodule Zot.Issue do
   end
 
   @doc ~S"""
-  builds a new `Zot.Issue` from the given message.
+  Builds a new `Zot.Issue`.
   """
   @spec issue(message :: String.t) :: t
 
   def issue(nes(_) = message), do: %Zot.Issue{template: message}
 
   @doc ~S"""
-  builds a new `Zot.Issue` from the given template message and
-  contextual information for interpolation.
+  Builds a new `Zot.Issue`.
   """
   @spec issue(template :: String.t, context :: keyword) :: t
+  @spec issue(path :: [segment, ...], template :: String.t) :: t
 
   def issue(nes(_) = template, [{_, _} | _] = context), do: %Zot.Issue{template: template, context: context}
+  def issue([_ | _] = path, nes(_) = template), do: %Zot.Issue{path: path, template: template}
+
+  @doc ~S"""
+  Builds a new `Zot.Issue`.
+  """
+  @spec issue(path :: [segment, ...], template :: String.t, context :: keyword) :: t
+
+  def issue([_ | _] = path, nes(_) = template, [{_, _} | _] = context), do: %Zot.Issue{path: path, template: template, context: context}
 
   @doc ~S"""
   Appends the given segments to the issue's path.

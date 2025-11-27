@@ -11,7 +11,7 @@ defmodule Zot.Template do
   defmacro __using__(_) do
     quote do
       import unquote(__MODULE__)
-      import Zot.Helpers, only: [is_mfa: 1, is_non_empty_string: 1, resolve: 1]
+      import Zot.Helpers, except: [deunionize: 1, exclude: 2, name: 1, parameterized: 1, unionize: 1]
       import Zot.Parameterized, only: [merge_opts: 2]
 
       @builder true
@@ -23,8 +23,8 @@ defmodule Zot.Template do
   """
   defmacro deftype(ast) do
     caller = __CALLER__
-    fields = Keyword.keys(ast)
-    types = Macro.prewalk(ast, &extract_type/1)
+    fields = [:__meta__ | Keyword.keys(ast)]
+    types = [{:__meta__, quote(do: map)} | Macro.prewalk(ast, &extract_type/1)]
     builder = builder(ast, caller)
 
     quote do
@@ -70,7 +70,7 @@ defmodule Zot.Template do
       {:fn, [],
        types
        |> Enum.flat_map(&reducer_fn_modifier_clauses/1)
-       |> Enum.concat([reducer_fn_raise_clause(caller.module)])}
+       |> Enum.concat([reducer_fn_raise_clause()])}
 
     options =
       types
@@ -90,7 +90,7 @@ defmodule Zot.Template do
 
       def new(opts) when is_list(opts) do
         unquote(defaults)
-        |> Keyword.merge(opts)
+        |> Keyword.merge(Enum.reject(opts, &is_nil(elem(&1, 1))))
         |> Enum.reduce(%__MODULE__{}, unquote(reducer_fn))
       end
 
@@ -126,7 +126,7 @@ defmodule Zot.Template do
     ]
   end
 
-  defp reducer_fn_raise_clause(mod) do
+  defp reducer_fn_raise_clause do
     modifier = {:modifier, [], __MODULE__}
 
     {:->, [],
@@ -135,7 +135,7 @@ defmodule Zot.Template do
        {:raise, [context: __MODULE__, imports: [{1, Kernel}, {2, Kernel}]],
         [
           {:__aliases__, [alias: false], [:ArgumentError]},
-          {:<<>>, [], ["[", name(mod), ".new/1] ", "Unknown option :", interpolate(modifier)]}
+          {:<<>>, [], ["Unknown option :", interpolate(modifier)]}
         ]}
      ]}
   end

@@ -325,6 +325,52 @@ defmodule Zot do
   defdelegate list(inner_type, opts \\ []), to: Zot.Type.List, as: :new
 
   @doc ~S"""
+  Defines a type that accepts a map of a known shape.
+
+  ## Examples
+
+      iex> Z.map(%{name: Z.string(), age: Z.integer(min: 18)})
+      iex> |> Z.parse(%{name: "Alice", age: 30})
+      {:ok, %{name: "Alice", age: 30}}
+
+      iex> Z.map(%{name: Z.string(), age: Z.integer(min: 18)})
+      iex> |> Z.parse(%{"name" => "Alice", "age" => 30})
+      {:ok, %{name: "Alice", age: 30}}
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.map(:strict, %{name: Z.string(), age: Z.integer(min: 18)})
+      iex>   |> Z.parse(%{name: "Alice", age: 30, foo: :bar})
+      iex>
+      iex> assert [:foo] = issue.path
+      iex>
+      iex> Exception.message(issue)
+      "unknown field"
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.map(%{name: Z.string(), age: Z.integer(min: 18)})
+      iex>   |> Z.parse(%{name: "Alice", age: 15})
+      iex>
+      iex> assert [:age] = issue.path
+      iex>
+      iex> Exception.message(issue)
+      "expected an integer greater than or equal to 18, got 15"
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.map(%{name: Z.string(), age: Z.integer(min: 18)})
+      iex>   |> Z.parse(%{"name" => "Alice", "age" => 15})
+      iex>
+      iex> assert ["age"] = issue.path
+      iex>
+      iex> Exception.message(issue)
+      "expected an integer greater than or equal to 18, got 15"
+
+      iex> Z.map(%{:name => Z.string(), "age" => Z.integer(min: 18)})
+      ** (ArgumentError) Only atom keys are allowed in a map's shape.
+
+  """
+  defdelegate map(mode \\ :strip, shape), to: Zot.Type.Map, as: :new
+
+  @doc ~S"""
   Defines a type that accepts a number (float or integer).
 
   ## Examples
