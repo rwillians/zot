@@ -19,6 +19,57 @@ defmodule Zot do
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
   @doc ~S"""
+  Defines a type that accepts any value.
+
+  ## Examples
+
+      iex> Z.any()
+      iex> |> Z.parse(:foo)
+      {:ok, :foo}
+
+      iex> Z.any()
+      iex> |> Z.parse("foo")
+      {:ok, "foo"}
+
+      iex> Z.any()
+      iex> |> Z.parse(true)
+      {:ok, true}
+
+      iex> Z.any()
+      iex> |> Z.parse(3.14)
+      {:ok, 3.14}
+
+      iex> Z.any()
+      iex> |> Z.parse(42)
+      {:ok, 42}
+
+      iex> Z.any()
+      iex> |> Z.parse([])
+      {:ok, []}
+
+      iex> Z.any()
+      iex> |> Z.parse(~D[2025-11-22])
+      {:ok, ~D[2025-11-22]}
+
+      iex> Z.any()
+      iex> |> Z.parse(~U[2025-11-22T13:45:00.000Z])
+      {:ok, ~U[2025-11-22T13:45:00.000Z]}
+
+      iex> Z.any()
+      iex> |> Z.parse({:foo, :bar})
+      {:ok, {:foo, :bar}}
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.any()
+      iex>   |> Z.parse(nil)
+      iex>
+      iex> Exception.message(issue)
+      "is required"
+
+  """
+  defdelegate any, to: Zot.Type.Any, as: :new
+
+  @doc ~S"""
   Defines a type that accepts boolean values.
 
   ## Examples
