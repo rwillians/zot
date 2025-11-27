@@ -29,7 +29,7 @@ defmodule Zot.Type.List do
   def length(%Zot.Type.List{} = type, value, opts \\ [])
       when is_nil(value)
       when is_integer(value) and value > 0,
-      do: %{type | length: {value, merge_params(@opts, opts)}}
+      do: %{type | length: {value, merge_opts(@opts, opts)}}
 
   @doc ~S"""
   Defines the minimum expected length of the list.
@@ -38,7 +38,7 @@ defmodule Zot.Type.List do
   def min(%Zot.Type.List{} = type, value, opts \\ [])
       when is_nil(value)
       when is_integer(value) and value >= 0,
-      do: %{type | min: {value, merge_params(@opts, opts)}}
+      do: %{type | min: {value, merge_opts(@opts, opts)}}
 
   @doc ~S"""
   Defines the maximum expected length of the list.
@@ -47,7 +47,7 @@ defmodule Zot.Type.List do
   def max(%Zot.Type.List{} = type, value, opts \\ [])
       when is_nil(value)
       when is_integer(value) and value > 0,
-      do: %{type | max: {value, merge_params(@opts, opts)}}
+      do: %{type | max: {value, merge_opts(@opts, opts)}}
 end
 
 defimpl Zot.Type, for: Zot.Type.List do

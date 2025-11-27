@@ -61,7 +61,8 @@ defmodule Zot.Commons do
   defp do_validate_number(value, [{_, {nil, _}} | rest]), do: do_validate_number(value, rest)
 
   defp do_validate_number(value, [{:is, {expected, opts}} | rest]) do
-    case value == expected do
+    #             ↓ so that, for example, 3.0 is considered equal to 3
+    case (value * 1.0) == (expected * 1.0) do
       true -> do_validate_number(value, rest)
       false -> {:error, [issue(opts.error, expected: expected, actual: value)]}
     end

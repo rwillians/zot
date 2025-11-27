@@ -14,7 +14,7 @@ defmodule Zot do
   defdelegate parse(type, value, opts \\ []), to: Zot.Type
 
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-  #                                 FACTORIES                                 #
+  #                                 TYPES API                                 #
   #                      keep them sorted alphabetically                      #
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -70,7 +70,7 @@ defmodule Zot do
   defdelegate any, to: Zot.Type.Any, as: :new
 
   @doc ~S"""
-  Defines a type that accepts boolean values.
+  Defines a type that accepts a boolean value.
 
   ## Examples
 
@@ -93,7 +93,7 @@ defmodule Zot do
   defdelegate boolean, to: Zot.Type.Boolean, as: :new
 
   @doc ~S"""
-  Defines a zot type that accepts date-times (ISO 8601) values.
+  Defines a zot type that accepts a date-time (ISO 8601) value.
 
   ## Examples
 
@@ -141,7 +141,7 @@ defmodule Zot do
   defdelegate date_time, to: Zot.Type.DateTime, as: :new
 
   @doc ~S"""
-  Defines a type that accepts email address values.
+  Defines a type that accepts an email address.
 
   ## Examples
 
@@ -226,33 +226,7 @@ defmodule Zot do
   defdelegate enum(values), to: Zot.Type.Enum, as: :new
 
   @doc ~S"""
-  Defines a type that accepts float values.
-
-  ## Examples
-
-      iex> Z.float()
-      iex> |> Z.parse(3.14)
-      {:ok, 3.14}
-
-      iex> assert {:error, [issue]} =
-      iex>   Z.float()
-      iex>   |> Z.parse("3.14")
-      iex>
-      iex> Exception.message(issue)
-      "expected type float, got string"
-
-      iex> assert {:error, [issue]} =
-      iex>   Z.float()
-      iex>   |> Z.parse(3)
-      iex>
-      iex> Exception.message(issue)
-      "expected type float, got integer"
-
-  """
-  defdelegate float, to: Zot.Type.Float, as: :new
-
-  @doc ~S"""
-  Defines a type that accepts integer values.
+  Defines a type that accepts an integer value.
 
   ## Examples
 
@@ -274,11 +248,32 @@ defmodule Zot do
       iex> Exception.message(issue)
       "expected type integer, got float"
 
+      iex> assert {:error, [issue]} =
+      iex>   Z.integer(is: 42)
+      iex>   |> Z.parse(13)
+      iex>
+      iex> Exception.message(issue)
+      "expected the exact integer 42"
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.integer(min: 13)
+      iex>   |> Z.parse(12)
+      iex>
+      iex> Exception.message(issue)
+      "expected an integer greater than or equal to 13, got 12"
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.integer(max: 42)
+      iex>   |> Z.parse(43)
+      iex>
+      iex> Exception.message(issue)
+      "expected an integer less than or equal to 42, got 43"
+
   """
-  defdelegate integer, to: Zot.Type.Integer, as: :new
+  defdelegate integer(opts \\ []), to: Zot.Type.Integer, as: :new
 
   @doc ~S"""
-  Defines a zot type that accepts a list of a given inner zot type.
+  Defines a zot type that accepts a list of a given inner type.
 
   ## Examples
 
@@ -330,7 +325,7 @@ defmodule Zot do
   defdelegate list(inner_type, opts \\ []), to: Zot.Type.List, as: :new
 
   @doc ~S"""
-  Defines a type that accepts number values (float or integer).
+  Defines a type that accepts a number (float or integer).
 
   ## Examples
 
@@ -342,6 +337,10 @@ defmodule Zot do
       iex> |> Z.parse(3.14)
       {:ok, 3.14}
 
+      iex> Z.number(is: 3.0)
+      iex> |> Z.parse(3)
+      {:ok, 3}
+
       iex> assert {:error, [issue]} =
       iex>   Z.number()
       iex>   |> Z.parse("42")
@@ -349,11 +348,32 @@ defmodule Zot do
       iex> Exception.message(issue)
       "expected type integer or float, got string"
 
+      iex> assert {:error, [issue]} =
+      iex>   Z.number(is: 42)
+      iex>   |> Z.parse(13)
+      iex>
+      iex> Exception.message(issue)
+      "expected the exact number 42"
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.number(min: 13.1)
+      iex>   |> Z.parse(13.0)
+      iex>
+      iex> Exception.message(issue)
+      "expected a number greater than or equal to 13.1, got 13.0"
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.number(max: 42)
+      iex>   |> Z.parse(42.5)
+      iex>
+      iex> Exception.message(issue)
+      "expected a number less than or equal to 42, got 42.5"
+
   """
-  defdelegate number, to: Zot.Type.Number, as: :new
+  defdelegate number(opts \\ []), to: Zot.Type.Number, as: :new
 
   @doc ~S"""
-  Defines a type that accepts string values.
+  Defines a type that accepts a string.
 
   ## Examples
 
@@ -405,4 +425,11 @@ defmodule Zot do
 
   """
   defdelegate string(opts \\ []), to: Zot.Type.String, as: :new
+
+  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+  #                               MODIFIERS API                               #
+  #                      keep them sorted alphabetically                      #
+  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+  #
 end

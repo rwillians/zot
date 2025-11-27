@@ -14,11 +14,11 @@ defmodule Zot.Parameterized do
   @doc ~S"""
   Merges two keyword lists of parameters.
   """
-  @spec merge_params(a, b) :: params
+  @spec merge_opts(a, b) :: params
         when a: keyword,
              b: keyword
 
-  def merge_params(a, b) do
+  def merge_opts(a, b) do
     a
     |> Keyword.merge(b)
     |> Map.new()

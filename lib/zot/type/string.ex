@@ -29,7 +29,7 @@ defmodule Zot.Type.String do
   def length(%Zot.Type.String{} = type, value, opts \\ [])
       when is_nil(value)
       when is_integer(value) and value > 0,
-      do: %{type | length: {value, merge_params(@opts, opts)}}
+      do: %{type | length: {value, merge_opts(@opts, opts)}}
 
   @doc ~S"""
   Defines the minimum expected length of the input.
@@ -38,7 +38,7 @@ defmodule Zot.Type.String do
   def min(%Zot.Type.String{} = type, value, opts \\ [])
       when is_nil(value)
       when is_integer(value) and value > -1,
-      do: %{type | min: {value, merge_params(@opts, opts)}}
+      do: %{type | min: {value, merge_opts(@opts, opts)}}
 
   @doc ~S"""
   Defines the maximum expected length of the input.
@@ -47,7 +47,7 @@ defmodule Zot.Type.String do
   def max(%Zot.Type.String{} = type, value, opts \\ [])
       when is_nil(value)
       when is_integer(value) and value > 0,
-      do: %{type | max: {value, merge_params(@opts, opts)}}
+      do: %{type | max: {value, merge_opts(@opts, opts)}}
 
   @doc ~S"""
   Defines an expected prefix for the input.
@@ -56,7 +56,7 @@ defmodule Zot.Type.String do
   def starts_with(%Zot.Type.String{} = type, value, opts \\ [])
       when is_nil(value)
       when is_non_empty_string(value),
-      do: %{type | starts_with: {value, merge_params(@opts, opts)}}
+      do: %{type | starts_with: {value, merge_opts(@opts, opts)}}
 
   @doc ~S"""
   Defines an expected suffix for the input.
@@ -65,7 +65,7 @@ defmodule Zot.Type.String do
   def ends_with(%Zot.Type.String{} = type, value, opts \\ [])
       when is_nil(value)
       when is_non_empty_string(value),
-      do: %{type | ends_with: {value, merge_params(@opts, opts)}}
+      do: %{type | ends_with: {value, merge_opts(@opts, opts)}}
 
   @doc ~S"""
   Defines an expected pattern for the input.
@@ -75,7 +75,7 @@ defmodule Zot.Type.String do
       when is_nil(value)
       when is_non_empty_string(value)
       when is_struct(value, Regex),
-      do: %{type | regex: {value, merge_params(@opts, opts)}}
+      do: %{type | regex: {value, merge_opts(@opts, opts)}}
 end
 
 defimpl Zot.Type, for: Zot.Type.String do

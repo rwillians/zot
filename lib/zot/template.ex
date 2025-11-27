@@ -12,7 +12,7 @@ defmodule Zot.Template do
     quote do
       import unquote(__MODULE__)
       import Zot.Helpers, only: [is_mfa: 1, is_non_empty_string: 1, resolve: 1]
-      import Zot.Parameterized, only: [merge_params: 2]
+      import Zot.Parameterized, only: [merge_opts: 2]
 
       @builder true
     end
