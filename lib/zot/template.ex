@@ -4,14 +4,14 @@ defmodule Zot.Template do
   """
   @moduledoc since: "0.1.0"
 
-  import Zot.Helpers, only: [exclude: 2, name: 1, parameterized: 1, unionize: 1]
+  import Zot.Helpers, only: [exclude: 2, name: 1, parameterized: 1, union: 1]
 
   @doc ~S"""
   """
   defmacro __using__(_) do
     quote do
       import unquote(__MODULE__)
-      import Zot.Helpers, except: [deunionize: 1, exclude: 2, name: 1, parameterized: 1, unionize: 1]
+      import Zot.Helpers, except: [deunion: 1, exclude: 2, name: 1, parameterized: 1, union: 1]
       import Zot.Parameterized, only: [merge_opts: 2]
 
       @builder true
@@ -75,7 +75,7 @@ defmodule Zot.Template do
     options =
       types
       |> Enum.flat_map(&builder_option/1)
-      |> unionize()
+      |> union()
 
     modifier_specs = Enum.map(types, &modifier_spec/1)
 

@@ -8,6 +8,19 @@ defmodule Zot.Helpers do
 
   @doc ~S"""
   Guard clause that matches a keyword (as best as it can).
+
+      iex> is_keyword([])
+      true
+
+      iex> is_keyword([foo: :bar])
+      true
+
+      iex> is_keyword([:foo, :bar])
+      false
+
+      iex> is_keyword([{"foo", "bar"}])
+      false
+
   """
   defguard is_keyword(value)
            when is_list(value) and
@@ -18,6 +31,19 @@ defmodule Zot.Helpers do
 
   @doc ~S"""
   Guard clause that matches an `mfa` tuple.
+
+      iex> is_mfa({MyModule, :my_function, []})
+      true
+
+      iex> is_mfa({"MyModule", :my_function, []})
+      false
+
+      iex> is_mfa({MyModule, "my_function", []})
+      false
+
+      iex> is_mfa({MyModule, :my_function, nil})
+      false
+
   """
   defguard is_mfa(value)
            when is_tuple(value) and
@@ -28,6 +54,16 @@ defmodule Zot.Helpers do
 
   @doc ~S"""
   Guard clause that matches a non-empty string.
+
+      iex> is_non_empty_string("hello")
+      true
+
+      iex> is_non_empty_string("")
+      false
+
+      iex> is_non_empty_string(:hello)
+      false
+
   """
   defguard is_non_empty_string(value)
            when is_binary(value) and byte_size(value) > 0
@@ -38,40 +74,23 @@ defmodule Zot.Helpers do
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
   @doc ~S"""
-  Figures out if exists a variation of the given key in the input
-  map, returning the found key and its value.
-  """
-  @spec discover_value(input, atom_key) :: {found_key, found_value}
-        when input: map,
-             atom_key: atom,
-             found_key: atom | String.t(),
-             found_value: term | nil
-
-  def discover_value(input, atom_key)
-      when is_non_struct_map(input) and is_atom(atom_key) do
-    string_key = to_string(atom_key)
-
-    with {_, :error} <- {atom_key, Map.fetch(input, atom_key)},
-          {_, :error} <- {string_key, Map.fetch(input, string_key)} do
-      {atom_key, nil}
-    else
-      {key, {:ok, value}} -> {key, value}
-    end
-  end
-
-  @doc ~S"""
   Excludes types from the given type.
+
+      iex> type = quote(do: :a | :b | :c)
+      iex> exclude(type, :b | :c)
+      quote(do: :a)
+
   """
   @spec exclude(Macro.t(), Macro.t()) :: Macro.t()
 
   defmacro exclude(type, types) do
-    types = deunionize(types)
+    types = deunion(types)
 
     quote location: :keep do
       unquote(type)
-      |> Zot.Helpers.deunionize()
+      |> Zot.Helpers.deunion()
       |> Enum.reject(&(&1 in unquote(types)))
-      |> Zot.Helpers.unionize()
+      |> Zot.Helpers.union()
     end
   end
 
@@ -117,11 +136,33 @@ defmodule Zot.Helpers do
   @doc ~S"""
   Splits a union type into a list of its component types.
   """
-  @spec deunionize(Macro.t()) :: [Macro.t(), ...]
+  @spec deunion(Macro.t()) :: [Macro.t(), ...]
 
-  def deunionize({:|, _, [left, right]}), do: [left | deunionize(right)]
-  def deunionize({:none, _, _}), do: []
-  def deunionize(other), do: [other]
+  def deunion({:|, _, [left, right]}), do: [left | deunion(right)]
+  def deunion({:none, _, _}), do: []
+  def deunion(other), do: [other]
+
+  @doc ~S"""
+  Figures out if exists a variation of the given key in the input
+  map, returning the found key and its value.
+  """
+  @spec discover_value(input, atom_key) :: {found_key, found_value}
+        when input: map,
+             atom_key: atom,
+             found_key: atom | String.t(),
+             found_value: term | nil
+
+  def discover_value(input, atom_key)
+      when is_non_struct_map(input) and is_atom(atom_key) do
+    string_key = to_string(atom_key)
+
+    with {_, :error} <- {atom_key, Map.fetch(input, atom_key)},
+          {_, :error} <- {string_key, Map.fetch(input, string_key)} do
+      {atom_key, nil}
+    else
+      {key, {:ok, value}} -> {key, value}
+    end
+  end
 
   @doc ~S"""
   Returns a human-readable list as string from the given list.
@@ -240,11 +281,11 @@ defmodule Zot.Helpers do
   @doc ~S"""
   Combines a list of types into a union type.
   """
-  @spec unionize([Macro.t()]) :: Macro.t()
+  @spec union([Macro.t()]) :: Macro.t()
 
-  def unionize([]), do: quote(do: none)
+  def union([]), do: quote(do: none)
 
-  def unionize([_ | _] = types) do
+  def union([_ | _] = types) do
     [last | rest] =
       types
       |> Enum.uniq()

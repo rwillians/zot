@@ -8,6 +8,7 @@ defmodule ZotTest do
   end
 
   doctest Zot
+  doctest Zot.Helpers, import: true
   doctest Zot.Issue, import: true
 
   test "calling new/1 with an invalid modifier raises an ArgumentError" do

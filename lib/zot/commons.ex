@@ -13,7 +13,7 @@ defmodule Zot.Commons do
   defmacro __using__(_) do
     quote do
       import unquote(__MODULE__)
-      import Zot.Helpers, except: [exclude: 2, parameterized: 1, deunionize: 1, name: 1, unionize: 1]
+      import Zot.Helpers, except: [exclude: 2, parameterized: 1, deunion: 1, name: 1, union: 1]
       import Zot.Issue, only: [append_path: 2, issue: 1, issue: 2, issue: 3, prepend_path: 2]
     end
   end
