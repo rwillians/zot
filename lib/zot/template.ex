@@ -23,7 +23,7 @@ defmodule Zot.Template do
   """
   defmacro deftype(ast) do
     caller = __CALLER__
-    fields = [:__meta__ | Keyword.keys(ast)]
+    fields = Keyword.keys(ast) ++ [{:__meta__, quote(do: %{})}]
     types = [{:__meta__, quote(do: map)} | Macro.prewalk(ast, &extract_type/1)]
     builder = builder(ast, caller)
 

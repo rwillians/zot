@@ -5,7 +5,7 @@ defmodule Zot.Type.Map do
 
   use Zot.Template
 
-  deftype shape: {nil,    t: map},
+  deftype shape: {%{},    t: map},
           mode:  {:strip, t: :strip | :strict}
 
   @doc ~s"""
@@ -26,19 +26,8 @@ defmodule Zot.Type.Map do
     value = Enum.into(value, %{})
     atom_keys = Map.keys(value)
 
-    string_keys =
-      atom_keys
-      |> Enum.map(&to_string/1)
-      |> MapSet.new()
-
-    known_fields =
-      []
-      |> Enum.concat(atom_keys)
-      |> Enum.concat(string_keys)
-      |> MapSet.new()
-
     meta = %{
-      known_fields: known_fields
+      known_fields: build_known_keys_index(value)
     }
 
     case Enum.all?(atom_keys, &is_atom/1) do
@@ -73,29 +62,9 @@ defimpl Zot.Type, for: Zot.Type.Map do
   #   PRIVATE
   #
 
-  defp get(map, key) do
-    with {:a, :error} <- {:a, Map.fetch(map, key)},
-         {:b, :error} <- {:b, Map.fetch(map, to_string(key))} do
-      {key, nil}
-    else
-      {:a, {:ok, val}} -> {key, val}
-      {:b, {:ok, val}} -> {to_string(key), val}
-    end
-  end
-
-  defp parse_known_fields(shape, map, opts) do
-    Enum.reduce(shape, {%{}, []}, fn {key, type}, {acc_parsed, acc_issues} ->
-      {input_key, input_val} = get(map, key)
-
-      case Zot.Type.parse(type, input_val, opts) do
-        {:ok, val} -> {Map.put(acc_parsed, key, val), acc_issues}
-        {:error, issues} -> {acc_parsed, acc_issues ++ Enum.map(issues, &prepend_path(&1, [input_key]))}
-      end
-    end)
-  end
-
   defp parse_map(value, %{mode: :strip} = type, opts) do
-    {parsed, issues} = parse_known_fields(type.shape, value, opts)
+    parser = &Zot.Type.parse(&1, &2, opts)
+    {parsed, issues} = parse_known_fields(value, type.shape, parser)
 
     case issues do
       [] -> {:ok, parsed}
@@ -111,7 +80,8 @@ defimpl Zot.Type, for: Zot.Type.Map do
           not MapSet.member?(known_fields, key),
           do: prepend_path(issue("unknown field"), [key])
 
-    {parsed, other_issues} = parse_known_fields(type.shape, value, opts)
+    parser = &Zot.Type.parse(&1, &2, opts)
+    {parsed, other_issues} = parse_known_fields(value, type.shape, parser)
     issues = unknown_field_issues ++ other_issues
 
     case issues do

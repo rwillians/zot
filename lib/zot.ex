@@ -472,6 +472,33 @@ defmodule Zot do
   """
   defdelegate string(opts \\ []), to: Zot.Type.String, as: :new
 
+  @doc ~S"""
+  Defines a type that accepts a map with a fixed set of keys and value
+  types and returns a struct.
+
+  ## Examples
+
+      iex> Z.struct(Address, %{line_1: Z.string(), city: Z.string()})
+      iex> |> Z.parse(%{line_1: "123 Main St", city: "Springfield"})
+      {:ok, %Address{line_1: "123 Main St", city: "Springfield"}}
+
+      iex> Z.struct(Address, %{line_1: Z.string(), city: Z.string()})
+      iex> |> Z.parse(%{"line_1" => "123 Main St", "city" => "Springfield"})
+      {:ok, %Address{line_1: "123 Main St", city: "Springfield"}}
+
+      iex> assert {:error, [issue1, issue2]} =
+      iex>   Z.struct(Address, %{line_1: Z.string(), city: Z.string()})
+      iex>   |> Z.parse(%{"line_1" => "123 Main St", "foo" => "bar"})
+      iex>
+      iex> assert issue1.path == ["foo"]
+      iex> assert Exception.message(issue1) == "unknown field"
+      iex>
+      iex> assert issue2.path == [:city]
+      iex> assert Exception.message(issue2) == "is required"
+
+  """
+  defdelegate struct(module, shape), to: Zot.Type.Struct, as: :new
+
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
   #                               MODIFIERS API                               #
   #                      keep them sorted alphabetically                      #

@@ -4,7 +4,7 @@ defmodule Zot.Commons do
   `Zot.Type` protocol.
   """
 
-  import Zot.Helpers, only: [human_readable_list: 2, nes: 1, typeof: 1]
+  import Zot.Helpers, only: [human_readable_list: 2, discover_value: 2, nes: 1, typeof: 1]
   import Zot.Issue
 
   @doc ~S"""
@@ -16,6 +16,26 @@ defmodule Zot.Commons do
       import Zot.Helpers, except: [exclude: 2, parameterized: 1, deunionize: 1, name: 1, unionize: 1]
       import Zot.Issue, only: [append_path: 2, issue: 1, issue: 2, issue: 3, prepend_path: 2]
     end
+  end
+
+  @doc ~S"""
+  Parses known fields of a shape from the given input map.
+  """
+  @spec parse_known_fields(input, shape, parser) :: {parsed :: map, [Zot.Issue.t]}
+        when input: map,
+             shape: map,
+             parser: (Zot.Type.t, term -> {:ok, term} | {:error, [Zot.Issue.t, ...]})
+
+  def parse_known_fields(input, %{} = shape, parser)
+      when is_non_struct_map(input) and is_function(parser, 2) do
+    Enum.reduce(shape, {%{}, []}, fn {key, type}, {acc_parsed, acc_issues} ->
+      {input_key, input_val} = discover_value(input, key)
+
+      case parser.(type, input_val) do
+        {:ok, val} -> {Map.put(acc_parsed, key, val), acc_issues}
+        {:error, issues} -> {acc_parsed, acc_issues ++ Enum.map(issues, &prepend_path(&1, [input_key]))}
+      end
+    end)
   end
 
   @gmail ~r/^(?!\.)(?!.*\.\.)([A-Za-z0-9_'+\-\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\-]*\.)+[A-Za-z]{2,}$/

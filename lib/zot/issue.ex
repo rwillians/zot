@@ -53,15 +53,15 @@ defmodule Zot.Issue do
   @doc ~S"""
   Builds a new `Zot.Issue`.
   """
-  @spec issue(message :: String.t) :: t
+  @spec issue(message :: String.t()) :: t
 
   def issue(nes(_) = message), do: %Zot.Issue{template: message}
 
   @doc ~S"""
   Builds a new `Zot.Issue`.
   """
-  @spec issue(template :: String.t, context :: keyword) :: t
-  @spec issue(path :: [segment, ...], template :: String.t) :: t
+  @spec issue(template :: String.t(), context :: keyword) :: t
+  @spec issue(path :: [segment, ...], template :: String.t()) :: t
 
   def issue(nes(_) = template, [{_, _} | _] = context), do: %Zot.Issue{template: template, context: context}
   def issue([_ | _] = path, nes(_) = template), do: %Zot.Issue{path: path, template: template}
@@ -69,14 +69,16 @@ defmodule Zot.Issue do
   @doc ~S"""
   Builds a new `Zot.Issue`.
   """
-  @spec issue(path :: [segment, ...], template :: String.t, context :: keyword) :: t
+  @spec issue(path :: [segment, ...], template :: String.t(), context :: keyword) :: t
 
   def issue([_ | _] = path, nes(_) = template, [{_, _} | _] = context), do: %Zot.Issue{path: path, template: template, context: context}
 
   @doc ~S"""
   Appends the given segments to the issue's path.
 
-      Zot.Issue.append_path(issue, [:data, "users", 0])
+      iex> assert %Zot.Issue{path: [:data, "users", 0, :name]} =
+      iex>   issue([:data, "users", 0], "is required")
+      iex>   |> append_path([:name])
 
   """
   @spec append_path(issue, segments) :: issue
@@ -88,7 +90,9 @@ defmodule Zot.Issue do
   @doc ~S"""
   Prepends the given segments to the issue's path.
 
-      Zot.Issue.prepend_path(issue, [:data, "users", 0])
+      iex> assert %Zot.Issue{path: [:data, "users", 0, :name]} =
+      iex>   issue([:name], "is required")
+      iex>   |> prepend_path([:data, "users", 0])
 
   """
   @spec prepend_path(issue, segments) :: issue
@@ -97,10 +101,40 @@ defmodule Zot.Issue do
 
   def prepend_path(%Zot.Issue{} = issue, [_ | _] = segments), do: %{issue | path: segments ++ issue.path}
 
+  @doc ~S"""
+  Given some issues, returns a flat map of errors by field, where the
+  field's path is represented in dot notation.
+
+      iex> Zot.Issue.treefy([])
+      %{}
+
+      iex> Zot.Issue.treefy([
+      iex>   issue([:users, 0, :name], "should have at most %{a} characters, got %{b} characters", a: 100, b: 101),
+      iex>   issue([:users, 0, :email], "is invalid"),
+      iex> ])
+      %{
+        "users.0.name" => ["should have at most 100 characters, got 101 characters"],
+        "users.0.email" => ["is invalid"]
+      }
+
+  """
+  def treefy([]), do: %{}
+
+  def treefy([_ | _] = issues) do
+    issues
+    |> Enum.map(&{dn(&1.path), message(&1)})
+    |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
+    |> Enum.into(%{})
+  end
+
   #
   #   PRIVATE
   #
 
   defp apply_flags(value, []), do: value
   defp apply_flags(value, ["quoted" | flags]), do: apply_flags(~s("#{value}"), flags)
+
+  #    ↓ [d]ot-[n]otation
+  defp dn([]), do: ""
+  defp dn([_ | _] = path), do: Enum.map_join(path, ".", &to_string/1)
 end

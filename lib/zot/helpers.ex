@@ -38,6 +38,28 @@ defmodule Zot.Helpers do
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
   @doc ~S"""
+  Figures out if exists a variation of the given key in the input
+  map, returning the found key and its value.
+  """
+  @spec discover_value(input, atom_key) :: {found_key, found_value}
+        when input: map,
+             atom_key: atom,
+             found_key: atom | String.t(),
+             found_value: term | nil
+
+  def discover_value(input, atom_key)
+      when is_non_struct_map(input) and is_atom(atom_key) do
+    string_key = to_string(atom_key)
+
+    with {_, :error} <- {atom_key, Map.fetch(input, atom_key)},
+          {_, :error} <- {string_key, Map.fetch(input, string_key)} do
+      {atom_key, nil}
+    else
+      {key, {:ok, value}} -> {key, value}
+    end
+  end
+
+  @doc ~S"""
   Excludes types from the given type.
   """
   @spec exclude(Macro.t(), Macro.t()) :: Macro.t()
@@ -72,6 +94,25 @@ defmodule Zot.Helpers do
   #                            FUNCTIONS                            #
   #                 keep them sorted alphabetically                 #
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+  @doc ~S"""
+  Builds an index of known keys from the given map/struct shape.
+  """
+  @spec build_known_keys_index(shape :: map) :: MapSet.t()
+
+  def build_known_keys_index(%{} = shape) do
+    keys = Map.keys(shape)
+
+    string_keys =
+      keys
+      |> Enum.map(&to_string/1)
+      |> MapSet.new()
+
+    []
+    |> Enum.concat(keys)
+    |> Enum.concat(string_keys)
+    |> MapSet.new()
+  end
 
   @doc ~S"""
   Splits a union type into a list of its component types.
