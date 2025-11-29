@@ -20,8 +20,7 @@ defimpl Zot.Type, for: Zot.Type.Email do
 
   @impl Zot.Type
   def parse(%Zot.Type.Email{} = type, value, _) do
-    with :ok <- validate_required(value),
-         :ok <- validate_type(value, "string"),
+    with :ok <- validate_type(value, "string"),
          :ok <- validate_email(value, type.ruleset),
          do: {:ok, value}
   end

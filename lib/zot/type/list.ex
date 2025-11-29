@@ -1,6 +1,6 @@
 defmodule Zot.Type.List do
   @moduledoc ~S"""
-  Defines a type that accepts a list of a given value.
+  Defines a type that accepts lists of a given type.
   """
 
   use Zot.Template
@@ -8,14 +8,16 @@ defmodule Zot.Type.List do
   import Kernel, except: [max: 2, min: 2]
 
   deftype inner_type: {nil, t: Zot.Type.t()},
-          length:     {nil, t: Zot.Parameterized.t(nil | pos_integer)},
-          min:        {nil, t: Zot.Parameterized.t(nil | non_neg_integer)},
-          max:        {nil, t: Zot.Parameterized.t(nil | pos_integer)}
+          length:     {nil, t: p(nil | pos_integer)},
+          min:        {nil, t: p(nil | non_neg_integer)},
+          max:        {nil, t: p(nil | pos_integer)}
 
   @doc ~S"""
   Alias to `new/1`.
   """
-  def new(%_{} = inner_type, opts) when is_list(opts), do: new([{:inner_type, inner_type} | opts])
+  def new(%_{} = inner_type, opts)
+      when is_list(opts),
+      do: new([{:inner_type, inner_type} | opts])
 
   @doc ~S"""
   Defines the type of the values inside the list.
@@ -29,7 +31,7 @@ defmodule Zot.Type.List do
   def length(%Zot.Type.List{} = type, value, opts \\ [])
       when is_nil(value)
       when is_integer(value) and value > 0,
-      do: %{type | length: {value, merge_opts(@opts, opts)}}
+      do: %{type | length: parameterized(value, @opts, opts)}
 
   @doc ~S"""
   Defines the minimum expected length of the list.
@@ -37,8 +39,8 @@ defmodule Zot.Type.List do
   @opts error: "should have at least %{expected} items, got %{actual} items"
   def min(%Zot.Type.List{} = type, value, opts \\ [])
       when is_nil(value)
-      when is_integer(value) and value >= 0,
-      do: %{type | min: {value, merge_opts(@opts, opts)}}
+      when is_integer(value) and value > -1,
+      do: %{type | min: parameterized(value, @opts, opts)}
 
   @doc ~S"""
   Defines the maximum expected length of the list.
@@ -47,7 +49,7 @@ defmodule Zot.Type.List do
   def max(%Zot.Type.List{} = type, value, opts \\ [])
       when is_nil(value)
       when is_integer(value) and value > 0,
-      do: %{type | max: {value, merge_opts(@opts, opts)}}
+      do: %{type | max: parameterized(value, @opts, opts)}
 end
 
 defimpl Zot.Type, for: Zot.Type.List do
@@ -55,9 +57,8 @@ defimpl Zot.Type, for: Zot.Type.List do
 
   @impl Zot.Type
   def parse(%Zot.Type.List{} = type, value, opts) do
-    with :ok <- validate_required(value),
-         :ok <- validate_type(value, "list"),
-         :ok <- validate_length(value, is: type.length, min: type.min, max: type.max),
+    with :ok <- validate_type(value, "list"),
+         :ok <- validate_length(value, is: type.length, gte: type.min, lte: type.max),
          {:ok, value} <- parse_items({type.inner_type, opts}, value),
          do: {:ok, value}
   end

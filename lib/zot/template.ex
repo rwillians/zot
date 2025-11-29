@@ -12,9 +12,9 @@ defmodule Zot.Template do
     quote do
       import unquote(__MODULE__)
       import Zot.Helpers, except: [deunion: 1, exclude: 2, name: 1, parameterized: 1, union: 1]
-      import Zot.Parameterized, only: [merge_opts: 2]
+      import Zot.Parameterized, only: [parameterized: 3]
 
-      @builder true
+      @new true
     end
   end
 
@@ -23,9 +23,20 @@ defmodule Zot.Template do
   """
   defmacro deftype(ast) do
     caller = __CALLER__
-    fields = Keyword.keys(ast) ++ [{:__meta__, quote(do: %{})}]
-    types = [{:__meta__, quote(do: map)} | Macro.prewalk(ast, &extract_type/1)]
     builder = builder(ast, caller)
+
+    fields =
+      Keyword.keys(ast) ++
+        [
+          __private__: quote(do: %{}),
+          __effects__: quote(do: [])
+        ]
+
+    types = [
+      {:__private__, quote(do: map)},
+      {:__effects__, quote(do: [Zot.effect()])}
+      | Macro.prewalk(ast, &extract_type/1)
+    ]
 
     quote do
       @typedoc ~S"""
@@ -34,7 +45,7 @@ defmodule Zot.Template do
 
       defstruct unquote(fields)
 
-      if @builder == true do
+      if @new == true do
         unquote(builder)
       end
     end
@@ -44,8 +55,11 @@ defmodule Zot.Template do
   #   PRIVATE
   #
 
-  defp extract_type({field, {_, t: type}}), do: {field, type}
+  defp extract_type({field, {_, t: type}}), do: {field, normalize_parameterized(type)}
   defp extract_type(other), do: other
+
+  defp normalize_parameterized({:p, _, [inner_type]}), do: {{:., [], [{:__aliases__, [alias: false], [:Zot, :Parameterized]}, :t]}, [], [inner_type]}
+  defp normalize_parameterized(other), do: other
 
   defp builder([], _) do
     quote do

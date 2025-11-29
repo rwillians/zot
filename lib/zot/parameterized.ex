@@ -12,16 +12,20 @@ defmodule Zot.Parameterized do
   @type params :: %{error: String.t()}
 
   @doc ~S"""
-  Merges two keyword lists of parameters.
+  Creates a parameterized value.
   """
-  @spec merge_opts(a, b) :: params
-        when a: keyword,
-             b: keyword
+  @spec parameterized(value, defaults, params) :: params
+        when value: term,
+             defaults: keyword,
+             params: keyword
 
-  def merge_opts(a, b) do
-    a
-    |> Keyword.merge(b)
-    |> Map.new()
-    |> Map.take([:error])
+  def parameterized(value, defaults \\ [], params) do
+    params =
+      defaults
+      |> Keyword.merge(params)
+      |> Map.new()
+      |> Map.take([:error])
+
+    {value, params}
   end
 end

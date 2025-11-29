@@ -1,6 +1,6 @@
 defprotocol Zot.Type do
   @moduledoc ~S"""
-  A protocol describing what's expected of a zot type.
+  A protocol for defining types in Zot.
   """
   @moduledoc since: "0.1.0"
 
@@ -9,8 +9,9 @@ defprotocol Zot.Type do
 
   ## Options
 
-  * `:coerce` - when `true`, attempts to deeply coerce the value into
-    the expected type before validation. Defaults to `false`.
+  * `:coerce` - when to any value other than `false`, attempts to
+    deeply coerce the value into the expected type before validation.
+    Defaults to `false`.
   """
   @spec parse(type :: t, value :: any, [option]) :: {:ok, term} | {:error, [Zot.Issue.t(), ...]}
         when option: {:coerce, boolean}

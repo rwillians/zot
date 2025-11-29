@@ -1,11 +1,10 @@
 defmodule Zot.Issue do
   @moduledoc ~S"""
-  Represents an issue encountered while parsing a value with a zot
-  type.
+  An issue that describes a validation failure.
   """
   @moduledoc since: "0.1.0"
 
-  import Zot.Helpers, only: [nes: 1]
+  import Zot.Helpers, only: [f: 1, is_non_empty_string: 1]
 
   @typedoc ~S"""
   The issue struct contains the information needed to compute the
@@ -38,15 +37,7 @@ defmodule Zot.Issue do
   @impl Exception
   def message(%Zot.Issue{} = issue) do
     Enum.reduce(issue.context, issue.template, fn {key, value}, acc ->
-      with [match | rest] <- Regex.run(~r/%\{#{key}(\s+\|\s+([^\}]+))?}/, acc) do
-        flags = Enum.at(rest, 1, "")
-        flags = String.split(flags, "+", trim: true)
-        value = apply_flags(to_string(value), flags)
-
-        String.replace(acc, match, value)
-      else
-        _ -> acc
-      end
+      String.replace(acc, "%{#{key}}", f(value))
     end)
   end
 
@@ -55,7 +46,9 @@ defmodule Zot.Issue do
   """
   @spec issue(message :: String.t()) :: t
 
-  def issue(nes(_) = message), do: %Zot.Issue{template: message}
+  def issue(message)
+      when is_non_empty_string(message),
+      do: %Zot.Issue{template: message}
 
   @doc ~S"""
   Builds a new `Zot.Issue`.
@@ -63,29 +56,22 @@ defmodule Zot.Issue do
   @spec issue(template :: String.t(), context :: keyword) :: t
   @spec issue(path :: [segment, ...], template :: String.t()) :: t
 
-  def issue(nes(_) = template, [{_, _} | _] = context), do: %Zot.Issue{template: template, context: context}
-  def issue([_ | _] = path, nes(_) = template), do: %Zot.Issue{path: path, template: template}
+  def issue(template, [{_, _} | _] = context)
+      when is_non_empty_string(template),
+      do: %Zot.Issue{template: template, context: context}
+
+  def issue([_ | _] = path, template)
+      when is_non_empty_string(template),
+      do: %Zot.Issue{path: path, template: template}
 
   @doc ~S"""
   Builds a new `Zot.Issue`.
   """
   @spec issue(path :: [segment, ...], template :: String.t(), context :: keyword) :: t
 
-  def issue([_ | _] = path, nes(_) = template, [{_, _} | _] = context), do: %Zot.Issue{path: path, template: template, context: context}
-
-  @doc ~S"""
-  Appends the given segments to the issue's path.
-
-      iex> assert %Zot.Issue{path: [:data, "users", 0, :name]} =
-      iex>   issue([:data, "users", 0], "is required")
-      iex>   |> append_path([:name])
-
-  """
-  @spec append_path(issue, segments) :: issue
-        when issue: t,
-             segments: [atom | String.t() | integer]
-
-  def append_path(%Zot.Issue{} = issue, [_ | _] = segments), do: %{issue | path: issue.path ++ segments}
+  def issue([_ | _] = path, template, [{_, _} | _] = context)
+      when is_non_empty_string(template),
+      do: %Zot.Issue{path: path, template: template, context: context}
 
   @doc ~S"""
   Prepends the given segments to the issue's path.
@@ -130,9 +116,6 @@ defmodule Zot.Issue do
   #
   #   PRIVATE
   #
-
-  defp apply_flags(value, []), do: value
-  defp apply_flags(value, ["quoted" | flags]), do: apply_flags(~s("#{value}"), flags)
 
   #    ↓ [d]ot-[n]otation
   defp dn([]), do: ""

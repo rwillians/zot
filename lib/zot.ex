@@ -3,6 +3,16 @@ defmodule Zot do
   A schema parser and validator library inspired by JavaScript's Zod.
   """
 
+  @typedoc ~S"""
+  Any Zot type.
+  """
+  @type type :: Zot.Type.t
+
+  @typedoc ~S"""
+  A Zot issue that describes a validation failure.
+  """
+  @type issue :: Zot.Issue.t
+
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
   #                               PROTOCOL API                                #
   #                      keep them sorted alphabetically                      #
@@ -59,12 +69,12 @@ defmodule Zot do
       iex> |> Z.parse({:foo, :bar})
       {:ok, {:foo, :bar}}
 
-      iex> assert {:error, [issue]} =
-      iex>   Z.any()
-      iex>   |> Z.parse(nil)
-      iex>
-      iex> Exception.message(issue)
-      "is required"
+      #iex> assert {:error, [issue]} =
+      #iex>   Z.any()
+      #iex>   |> Z.parse(nil)
+      #iex>
+      #iex> Exception.message(issue)
+      #"is required"
 
   """
   defdelegate any, to: Zot.Type.Any, as: :new
@@ -137,8 +147,71 @@ defmodule Zot do
       iex> |> Z.parse("2025-11-22T13:45:00.000-00:00", coerce: true)
       {:ok, ~U[2025-11-22 13:45:00.000Z]}
 
+      iex> assert {:error, [issue]} =
+      iex>   Z.date_time(is_after: ~U[2025-11-22T14:00:00.000Z])
+      iex>   |> Z.parse(~U[2025-11-22T13:00:00.000Z])
+      iex>
+      iex> Exception.message(issue)
+      "expected a date-time after 2025-11-22T14:00:00.000Z, got 2025-11-22T13:00:00.000Z"
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.date_time(is_before: ~U[2025-11-22T14:00:00.000Z])
+      iex>   |> Z.parse(~U[2025-11-22T15:00:00.000Z])
+      iex>
+      iex> Exception.message(issue)
+      "expected a date-time before 2025-11-22T14:00:00.000Z, got 2025-11-22T15:00:00.000Z"
+
   """
-  defdelegate date_time, to: Zot.Type.DateTime, as: :new
+  defdelegate date_time(opts \\ []), to: Zot.Type.DateTime, as: :new
+
+  @doc ~S"""
+  Defines a field that accepts a decimal value.
+
+  ## Examples
+
+      iex> Z.decimal()
+      iex> |> Z.parse(Decimal.from_float(3.14))
+      {:ok, Decimal.new("3.14")}
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.decimal()
+      iex>   |> Z.parse(12)
+      iex>
+      iex> Exception.message(issue)
+      "expected type Decimal, got integer"
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.decimal(min: 3.14)
+      iex>   |> Z.parse(Decimal.new(3))
+      iex>
+      iex> Exception.message(issue)
+      "expected a number greater than or equal to 3.14, got 3.0"
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.decimal(max: 42)
+      iex>   |> Z.parse(Decimal.new(69))
+      iex>
+      iex> Exception.message(issue)
+      "expected a number less than or equal to 42, got 69.0"
+
+      iex> Z.decimal()
+      iex> |> Z.parse(3.14, coerce: true)
+      {:ok, Decimal.new("3.14")}
+
+      iex> Z.decimal()
+      iex> |> Z.parse(42, coerce: true)
+      {:ok, Decimal.new(42)}
+
+      iex> Z.decimal()
+      iex> |> Z.parse("3.14", coerce: true)
+      {:ok, Decimal.from_float(3.14)}
+
+      iex> Z.decimal()
+      iex> |> Z.parse("42", coerce: true)
+      {:ok, Decimal.new(42)}
+
+  """
+  defdelegate decimal(opts \\ []), to: Zot.Type.Decimal, as: :new
 
   @doc ~S"""
   Defines a type that accepts an email address.
@@ -260,14 +333,14 @@ defmodule Zot do
       iex>   |> Z.parse(12)
       iex>
       iex> Exception.message(issue)
-      "expected an integer greater than or equal to 13, got 12"
+      "expected a number greater than or equal to 13, got 12"
 
       iex> assert {:error, [issue]} =
       iex>   Z.integer(max: 42)
       iex>   |> Z.parse(43)
       iex>
       iex> Exception.message(issue)
-      "expected an integer less than or equal to 42, got 43"
+      "expected a number less than or equal to 42, got 43"
 
   """
   defdelegate integer(opts \\ []), to: Zot.Type.Integer, as: :new
@@ -353,7 +426,7 @@ defmodule Zot do
       iex> assert [:age] = issue.path
       iex>
       iex> Exception.message(issue)
-      "expected an integer greater than or equal to 18, got 15"
+      "expected a number greater than or equal to 18, got 15"
 
       iex> assert {:error, [issue]} =
       iex>   Z.map(%{name: Z.string(), age: Z.integer(min: 18)})
@@ -362,7 +435,7 @@ defmodule Zot do
       iex> assert ["age"] = issue.path
       iex>
       iex> Exception.message(issue)
-      "expected an integer greater than or equal to 18, got 15"
+      "expected a number greater than or equal to 18, got 15"
 
       iex> Z.map(%{:name => Z.string(), "age" => Z.integer(min: 18)})
       ** (ArgumentError) Only atom keys are allowed in a map's shape.

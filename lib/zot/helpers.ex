@@ -95,17 +95,12 @@ defmodule Zot.Helpers do
   end
 
   @doc ~S"""
-  Pattern matches a [n]on-[e]mpty [s]tring.
+  Pattern matches the AST for type `Zot.Parameterized.t/1`, extracting
+  its inner type.
   """
-  defmacro nes(var), do: quote(do: <<_, _::binary>> = unquote(var))
-
-  @doc ~S"""
-  Pattern matches the AST for type `Zot.Parameterized.t/1`, extracting its
-  inner type.
-  """
-  defmacro parameterized(var) do
+  defmacro parameterized(inner_type) do
     quote do
-      {{:., _, [{:__aliases__, _, [:Zot, :Parameterized]}, :t]}, _, [unquote(var)]}
+      {{:., _, [{:__aliases__, _, [:Zot, :Parameterized]}, :t]}, _, [unquote(inner_type)]}
     end
   end
 
@@ -134,6 +129,15 @@ defmodule Zot.Helpers do
   end
 
   @doc ~S"""
+  Determines whether coercion is enabled from the given parser options.
+  """
+  @spec coerce?(opts) :: boolean | atom
+        when opts: keyword
+
+  def coerce?([]), do: false
+  def coerce?([{_, _} | _] = opts), do: Keyword.get(opts, :coerce, false)
+
+  @doc ~S"""
   Splits a union type into a list of its component types.
   """
   @spec deunion(Macro.t()) :: [Macro.t(), ...]
@@ -143,26 +147,16 @@ defmodule Zot.Helpers do
   def deunion(other), do: [other]
 
   @doc ~S"""
-  Figures out if exists a variation of the given key in the input
-  map, returning the found key and its value.
+  Formats the given value for inclusion in error messages.
   """
-  @spec discover_value(input, atom_key) :: {found_key, found_value}
-        when input: map,
-             atom_key: atom,
-             found_key: atom | String.t(),
-             found_value: term | nil
+  @spec f(term) :: String.t()
 
-  def discover_value(input, atom_key)
-      when is_non_struct_map(input) and is_atom(atom_key) do
-    string_key = to_string(atom_key)
-
-    with {_, :error} <- {atom_key, Map.fetch(input, atom_key)},
-          {_, :error} <- {string_key, Map.fetch(input, string_key)} do
-      {atom_key, nil}
-    else
-      {key, {:ok, value}} -> {key, value}
-    end
-  end
+  def f({:formated, value}), do: value
+  def f(%DateTime{} = value), do: DateTime.to_iso8601(value)
+  def f(%Regex{} = value), do: "/#{value.source}/"
+  def f(value) when is_atom(value), do: inspect(value)
+  def f(value) when is_binary(value), do: "'#{value}'"
+  def f(value), do: to_string(value)
 
   @doc ~S"""
   Returns a human-readable list as string from the given list.
@@ -193,23 +187,6 @@ defmodule Zot.Helpers do
   end
 
   @doc ~S"""
-  Invokes the given mfa or function.
-  """
-  @spec invoke(mfa | (-> term)) :: term
-
-  def invoke({m, f, a} = mfa) when is_mfa(mfa), do: apply(m, f, a)
-  def invoke(fun) when is_function(fun, 0), do: fun.()
-
-  @doc ~S"""
-  Invokes the given mfa or function with the given value as the first
-  argument.
-  """
-  @spec invoke(mfa | (term -> term), term) :: term
-
-  def invoke({m, f, a} = mfa, value) when is_mfa(mfa), do: apply(m, f, [value | a])
-  def invoke(fun, value) when is_function(fun, 1), do: fun.(value)
-
-  @doc ~S"""
   Returns the given module's name without the `"Elixir."` prefix.
   """
   @spec name(module) :: String.t()
@@ -234,7 +211,8 @@ defmodule Zot.Helpers do
   Resolves a value that may be an mfa or a function.
   """
   @spec resolve(mfa | (-> term) | term) :: term
-  def resolve(mfa) when is_mfa(mfa), do: invoke(mfa)
+
+  def resolve({m, f, a} = mfa) when is_mfa(mfa), do: apply(m, f, a)
   def resolve(fun) when is_function(fun, 0), do: fun.()
   def resolve(value), do: value
 

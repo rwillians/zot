@@ -13,8 +13,7 @@ defimpl Zot.Type, for: Zot.Type.Boolean do
 
   @impl Zot.Type
   def parse(%Zot.Type.Boolean{}, value, _) do
-    with :ok <- validate_required(value),
-         :ok <- validate_type(value, "boolean"),
+    with :ok <- validate_type(value, "boolean"),
          do: {:ok, value}
   end
 end

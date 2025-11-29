@@ -1,12 +1,12 @@
 defmodule Zot.Type.Map do
   @moduledoc ~S"""
-  A type that accepts a map of a known shape.
+  A type that accepts maps of a known shape.
   """
 
   use Zot.Template
 
-  deftype shape: {%{},    t: map},
-          mode:  {:strip, t: :strip | :strict}
+  deftype mode:  {:strip, t: :strip | :strict},
+          shape: {nil,    t: map}
 
   @doc ~s"""
   Builds a new `Zot.Type.Map` from the given mode and shape.
@@ -18,25 +18,6 @@ defmodule Zot.Type.Map do
   def new(mode, shape), do: new(mode: mode, shape: shape)
 
   @doc ~S"""
-  Defines the shape of the map.
-  """
-  def shape(%Zot.Type.Map{} = type, value)
-      when is_non_struct_map(value) and map_size(value) > 0
-      when is_keyword(value) and length(value) > 0 do
-    value = Enum.into(value, %{})
-    atom_keys = Map.keys(value)
-
-    meta = %{
-      known_fields: build_known_keys_index(value)
-    }
-
-    case Enum.all?(atom_keys, &is_atom/1) do
-      true -> %{type | shape: Enum.into(value, %{}), __meta__: meta}
-      false -> raise(ArgumentError, "Only atom keys are allowed in a map's shape.")
-    end
-  end
-
-  @doc ~S"""
   Defines the parsing mode:
   - `:strip` - removes any keys not defined in the shape.
   - `:strict` - produces an issue for each present key that's not
@@ -45,6 +26,23 @@ defmodule Zot.Type.Map do
   def mode(%Zot.Type.Map{} = type, value)
       when value in [:strip, :strict],
       do: %{type | mode: value}
+
+  @doc ~S"""
+  Defines the shape of the map.
+  """
+  def shape(%Zot.Type.Map{} = type, value)
+      when is_non_struct_map(value) and map_size(value) > 0 do
+    atom_keys = Map.keys(value)
+
+    private = %{
+      known_fields: build_known_keys_index(value)
+    }
+
+    case Enum.all?(atom_keys, &is_atom/1) do
+      true -> %{type | shape: Enum.into(value, %{}), __private__: private}
+      false -> raise(ArgumentError, "Only atom keys are allowed in a map's shape.")
+    end
+  end
 end
 
 defimpl Zot.Type, for: Zot.Type.Map do
@@ -52,10 +50,9 @@ defimpl Zot.Type, for: Zot.Type.Map do
 
   @impl Zot.Type
   def parse(%Zot.Type.Map{} = type, value, opts) do
-    with :ok <- validate_required(value),
-          :ok <- validate_type(value, "map"),
-          {:ok, value} <- parse_map(value, type, opts),
-          do: {:ok, value}
+    with :ok <- validate_type(value, "map"),
+         {:ok, value} <- parse_map(value, type, opts),
+         do: {:ok, value}
   end
 
   #
@@ -73,7 +70,7 @@ defimpl Zot.Type, for: Zot.Type.Map do
   end
 
   defp parse_map(value, %{mode: :strict} = type, opts) do
-    known_fields = type.__meta__.known_fields
+    known_fields = type.__private__.known_fields
 
     unknown_field_issues =
       for key <- Map.keys(value),
@@ -87,6 +84,28 @@ defimpl Zot.Type, for: Zot.Type.Map do
     case issues do
       [] -> {:ok, parsed}
       [_ | _] -> {:error, issues}
+    end
+  end
+
+  defp parse_known_fields(input, %{} = shape, parser) do
+    Enum.reduce(shape, {%{}, []}, fn {key, type}, {acc_parsed, acc_issues} ->
+      {input_key, input_val} = discover_value(input, key)
+
+      case parser.(type, input_val) do
+        {:ok, val} -> {Map.put(acc_parsed, key, val), acc_issues}
+        {:error, issues} -> {acc_parsed, acc_issues ++ Enum.map(issues, &prepend_path(&1, [input_key]))}
+      end
+    end)
+  end
+
+  defp discover_value(input, atom_key) do
+    string_key = to_string(atom_key)
+
+    with {_, :error} <- {atom_key, Map.fetch(input, atom_key)},
+          {_, :error} <- {string_key, Map.fetch(input, string_key)} do
+      {atom_key, nil}
+    else
+      {key, {:ok, value}} -> {key, value}
     end
   end
 end
