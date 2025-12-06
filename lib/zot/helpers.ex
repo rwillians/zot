@@ -1,190 +1,6 @@
 defmodule Zot.Helpers do
-  @moduledoc false
-
-  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-  #                          GUARD CLAUSES                          #
-  #                 keep them sorted alphabetically                 #
-  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-  @doc ~S"""
-  Guard clause that matches a keyword (as best as it can).
-
-      iex> is_keyword([])
-      true
-
-      iex> is_keyword([foo: :bar])
-      true
-
-      iex> is_keyword([:foo, :bar])
-      false
-
-      iex> is_keyword([{"foo", "bar"}])
-      false
-
+  @moduledoc ~S"""
   """
-  defguard is_keyword(value)
-           when is_list(value) and
-                  (length(value) == 0 or
-                     (is_tuple(hd(value)) and
-                        tuple_size(hd(value)) == 2 and
-                        is_atom(elem(hd(value), 0))))
-
-  @doc ~S"""
-  Guard clause that matches an `mfa` tuple.
-
-      iex> is_mfa({MyModule, :my_function, []})
-      true
-
-      iex> is_mfa({"MyModule", :my_function, []})
-      false
-
-      iex> is_mfa({MyModule, "my_function", []})
-      false
-
-      iex> is_mfa({MyModule, :my_function, nil})
-      false
-
-  """
-  defguard is_mfa(value)
-           when is_tuple(value) and
-                  tuple_size(value) == 3 and
-                  is_atom(elem(value, 0)) and
-                  is_atom(elem(value, 1)) and
-                  is_list(elem(value, 2))
-
-  @doc ~S"""
-  Guard clause that matches a non-empty string.
-
-      iex> is_non_empty_string("hello")
-      true
-
-      iex> is_non_empty_string("")
-      false
-
-      iex> is_non_empty_string(:hello)
-      false
-
-  """
-  defguard is_non_empty_string(value)
-           when is_binary(value) and byte_size(value) > 0
-
-  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-  #                             MACROS                              #
-  #                 keep them sorted alphabetically                 #
-  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-  @doc ~S"""
-  Excludes types from the given type.
-
-      iex> type = quote(do: :a | :b | :c)
-      iex> exclude(type, :b | :c)
-      quote(do: :a)
-
-  """
-  @spec exclude(Macro.t(), Macro.t()) :: Macro.t()
-
-  defmacro exclude(type, types) do
-    types = deunion(types)
-
-    quote location: :keep do
-      unquote(type)
-      |> Zot.Helpers.deunion()
-      |> Enum.reject(&(&1 in unquote(types)))
-      |> Zot.Helpers.union()
-    end
-  end
-
-  @doc ~S"""
-  Pattern matches the AST for type `Zot.Parameterized.t/1`, extracting
-  its inner type.
-  """
-  defmacro parameterized(inner_type) do
-    quote do
-      {{:., _, [{:__aliases__, _, [:Zot, :Parameterized]}, :t]}, _, [unquote(inner_type)]}
-    end
-  end
-
-  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-  #                            FUNCTIONS                            #
-  #                 keep them sorted alphabetically                 #
-  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-  @doc ~S"""
-  Builds an index of known keys from the given map/struct shape.
-  """
-  @spec build_known_keys_index(shape :: map) :: MapSet.t()
-
-  def build_known_keys_index(%{} = shape) do
-    keys = Map.keys(shape)
-
-    string_keys =
-      keys
-      |> Enum.map(&to_string/1)
-      |> MapSet.new()
-
-    []
-    |> Enum.concat(keys)
-    |> Enum.concat(string_keys)
-    |> MapSet.new()
-  end
-
-  @doc ~S"""
-  Determines whether coercion is enabled from the given parser options.
-  """
-  @spec coerce?(opts) :: boolean | atom
-        when opts: keyword
-
-  def coerce?([]), do: false
-  def coerce?([{_, _} | _] = opts), do: Keyword.get(opts, :coerce, false)
-
-  @doc ~S"""
-  Splits a union type into a list of its component types.
-  """
-  @spec deunion(Macro.t()) :: [Macro.t(), ...]
-
-  def deunion({:|, _, [left, right]}), do: [left | deunion(right)]
-  def deunion({:none, _, _}), do: []
-  def deunion(other), do: [other]
-
-  @doc ~S"""
-  Formats the given value for inclusion in error messages.
-  """
-  @spec f(term) :: String.t()
-
-  def f({:formated, value}), do: value
-  def f(%DateTime{} = value), do: DateTime.to_iso8601(value)
-  def f(%Regex{} = value), do: "/#{value.source}/"
-  def f(value) when is_atom(value), do: inspect(value)
-  def f(value) when is_binary(value), do: "'#{value}'"
-  def f(value), do: to_string(value)
-
-  @doc ~S"""
-  Returns a human-readable list as string from the given list.
-  """
-  @spec human_readable_list([value, ...], [option]) :: String.t()
-        when value: String.t() | String.Chars.t(),
-             option: {:conjunction, :and | :or}
-
-  def human_readable_list([head]), do: "#{head}"
-
-  def human_readable_list([_, _ | _] = list, opts \\ []) do
-    conjunction =
-      case Keyword.get(opts, :conjunction, :and) do
-        :and -> "and"
-        :or -> "or"
-        value -> raise(ArgumentError, "Expected conjunction to be either :and or :or, got: #{inspect(value)}")
-      end
-
-    [last, second_last | rest] =
-      list
-      |> Enum.map(&to_string/1)
-      |> :lists.reverse()
-
-    rest
-    |> :lists.reverse()
-    |> Enum.concat(["#{second_last} #{conjunction} #{last}"])
-    |> Enum.join(", ")
-  end
 
   @doc ~S"""
   Returns the given module's name without the `"Elixir."` prefix.
@@ -192,46 +8,6 @@ defmodule Zot.Helpers do
   @spec name(module) :: String.t()
 
   def name(mod) when is_atom(mod), do: String.replace(to_string(mod), ~r/^Elixir\./, "")
-
-  @doc ~S"""
-  Parses a float from the given string.
-  """
-  @spec parse_float(String.t()) :: {:ok, float} | :error
-
-  def parse_float(value), do: with({float, ""} <- Float.parse(value), do: {:ok, float}, else: (_ -> :error))
-
-  @doc ~S"""
-  Parses an integer from the given string.
-  """
-  @spec parse_integer(String.t()) :: {:ok, integer} | :error
-
-  def parse_integer(value), do: with({int, ""} <- Integer.parse(value), do: {:ok, int}, else: (_ -> :error))
-
-  @doc ~S"""
-  Resolves a value that may be an mfa or a function.
-  """
-  @spec resolve(mfa | (-> term) | term) :: term
-
-  def resolve({m, f, a} = mfa) when is_mfa(mfa), do: apply(m, f, a)
-  def resolve(fun) when is_function(fun, 0), do: fun.()
-  def resolve(value), do: value
-
-  @doc ~S"""
-  Casts a string into an atom, only creating a new atom if it doesn't
-  exist yet.
-  """
-  @spec to_atom_safe(value) :: atom()
-        when value: String.t() | atom()
-
-  def to_atom_safe(value)
-      when is_atom(value),
-      do: value
-
-  def to_atom_safe(<<str::binary>>) do
-    String.to_existing_atom(str)
-  rescue
-    _ -> String.to_atom(str)
-  end
 
   @doc ~S"""
   Returns the type of the given value as a string.
@@ -245,7 +21,8 @@ defmodule Zot.Helpers do
   def typeof(value) when is_bitstring(value), do: "bitstring"
   def typeof(value) when is_float(value), do: "float"
   def typeof(value) when is_integer(value), do: "integer"
-  def typeof(value) when is_list(value), do: if(Keyword.keyword?(value), do: "keyword", else: "list")
+  def typeof([{_, _} | _]), do: "keyword"
+  def typeof(value) when is_list(value), do: "list"
   def typeof(%mod{}), do: name(mod)
   def typeof(%{__struct__: mod}), do: name(mod)
   def typeof(value) when is_map(value), do: "map"
@@ -255,20 +32,4 @@ defmodule Zot.Helpers do
   def typeof(value) when is_port(value), do: "port"
   def typeof(value) when is_reference(value), do: "reference"
   def typeof(value), do: raise(ArgumentError, "Unabled to determine type of value #{inspect(value)}")
-
-  @doc ~S"""
-  Combines a list of types into a union type.
-  """
-  @spec union([Macro.t()]) :: Macro.t()
-
-  def union([]), do: quote(do: none)
-
-  def union([_ | _] = types) do
-    [last | rest] =
-      types
-      |> Enum.uniq()
-      |> :lists.reverse()
-
-    Enum.reduce(rest, last, &{:|, [], [&1, &2]})
-  end
 end

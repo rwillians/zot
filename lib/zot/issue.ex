@@ -1,123 +1,117 @@
 defmodule Zot.Issue do
   @moduledoc ~S"""
-  An issue that describes a validation failure.
   """
-  @moduledoc since: "0.1.0"
 
-  import Zot.Helpers, only: [f: 1, is_non_empty_string: 1]
+  alias __MODULE__
 
   @typedoc ~S"""
-  The issue struct contains the information needed to compute the
-  final message, and some other metadata used internally by zot.
-
-  - `path`:     the path to the value where the issue was found.
-  - `template`: the template message for the issue, before
-    interpolation.
-  - `context`:  the contextual information that's used to form the
-    final, interpolated error message.
-  - `__meta__`: a map of metadata used internally by zot.
-  """
-  @type t :: %Zot.Issue{
-          path: [],
-          template: String.t(),
-          context: keyword,
-          __meta__: map
-        }
-
-  @typedoc ~S"""
-  A segment in the path to the value where the issue was found.
   """
   @type segment :: atom | String.t() | integer
 
+  @typedoc ~S"""
+  """
+  @type t :: %Issue{
+          path: [segment],
+          template: String.t(),
+          variables: keyword
+        }
+
   defexception path: [],
                template: nil,
-               context: [],
-               __meta__: %{}
+               variables: []
 
   @impl Exception
-  def message(%Zot.Issue{} = issue) do
-    Enum.reduce(issue.context, issue.template, fn {key, value}, acc ->
-      String.replace(acc, "%{#{key}}", f(value))
+  def message(%Issue{} = issue) do
+    Enum.reduce(issue.variables, issue.template, fn {key, value}, acc ->
+      String.replace(acc, "%{#{key}}", format(value))
     end)
   end
 
   @doc ~S"""
-  Builds a new `Zot.Issue`.
+  Creates a new issue.
   """
-  @spec issue(message :: String.t()) :: t
+  @spec issue(message) :: t
+        when message: String.t()
 
   def issue(message)
-      when is_non_empty_string(message),
-      do: %Zot.Issue{template: message}
+      when is_binary(message),
+      do: %Issue{template: message}
 
   @doc ~S"""
-  Builds a new `Zot.Issue`.
+  Creates a new issue.
   """
-  @spec issue(template :: String.t(), context :: keyword) :: t
-  @spec issue(path :: [segment, ...], template :: String.t()) :: t
+  @spec issue(template, variables) :: t
+        when template: String.t(),
+             variables: keyword
+  @spec issue(path, message) :: t
+        when path: [segment],
+             message: String.t()
 
-  def issue(template, [{_, _} | _] = context)
-      when is_non_empty_string(template),
-      do: %Zot.Issue{template: template, context: context}
+  def issue(template, variables)
+      when is_binary(template) and is_list(variables),
+      do: %Issue{template: template, variables: variables}
 
-  def issue([_ | _] = path, template)
-      when is_non_empty_string(template),
-      do: %Zot.Issue{path: path, template: template}
+  def issue(path, message)
+      when is_list(path) and is_binary(message),
+      do: %Issue{path: path, template: message}
 
   @doc ~S"""
-  Builds a new `Zot.Issue`.
+  Creates a new issue.
   """
-  @spec issue(path :: [segment, ...], template :: String.t(), context :: keyword) :: t
+  @spec issue(path, template, variables) :: t
+        when path: [segment],
+             template: String.t(),
+             variables: keyword
 
-  def issue([_ | _] = path, template, [{_, _} | _] = context)
-      when is_non_empty_string(template),
-      do: %Zot.Issue{path: path, template: template, context: context}
+  def issue(path, template, variables)
+      when is_list(path) and is_binary(template) and is_list(variables),
+      do: %Issue{path: path, template: template, variables: variables}
 
   @doc ~S"""
-  Prepends the given segments to the issue's path.
-
-      iex> assert %Zot.Issue{path: [:data, "users", 0, :name]} =
-      iex>   issue([:name], "is required")
-      iex>   |> prepend_path([:data, "users", 0])
-
+  Prepends segments to the issue's path.
   """
   @spec prepend_path(issue, segments) :: issue
         when issue: t,
-             segments: [atom | String.t() | integer]
+             segments: [term]
 
-  def prepend_path(%Zot.Issue{} = issue, [_ | _] = segments), do: %{issue | path: segments ++ issue.path}
-
-  @doc ~S"""
-  Given some issues, returns a flat map of errors by field, where the
-  field's path is represented in dot notation.
-
-      iex> Zot.Issue.treefy([])
-      %{}
-
-      iex> Zot.Issue.treefy([
-      iex>   issue([:users, 0, :name], "should have at most %{a} characters, got %{b} characters", a: 100, b: 101),
-      iex>   issue([:users, 0, :email], "is invalid"),
-      iex> ])
-      %{
-        "users.0.name" => ["should have at most 100 characters, got 101 characters"],
-        "users.0.email" => ["is invalid"]
-      }
-
-  """
-  def treefy([]), do: %{}
-
-  def treefy([_ | _] = issues) do
-    issues
-    |> Enum.map(&{dn(&1.path), message(&1)})
-    |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
-    |> Enum.into(%{})
-  end
+  def prepend_path(%Issue{} = issue, []), do: issue
+  def prepend_path(%Issue{} = issue, [_ | _] = segments), do: %{issue | path: segments ++ issue.path}
 
   #
   #   PRIVATE
   #
 
-  #    ↓ [d]ot-[n]otation
-  defp dn([]), do: ""
-  defp dn([_ | _] = path), do: Enum.map_join(path, ".", &to_string/1)
+  defp human_readable_list([_, _ | _] = list, which, opts)
+      when which in [:conjunction, :disjunction] do
+    separator =
+      case which do
+        :conjunction -> "and"
+        :disjunction -> "or"
+      end
+
+    [last, second_last | rest] =
+      list
+      |> Enum.map(&to_string/1)
+      |> Enum.map(&maybe_quote(&1, opts[:quote]))
+      |> :lists.reverse()
+
+    rest
+    |> :lists.reverse()
+    |> Enum.concat(["#{second_last} #{separator} #{last}"])
+    |> Enum.join(", ")
+  end
+
+  defp format(%Date{} = value), do: Date.to_iso8601(value)
+  defp format(%DateTime{} = value), do: DateTime.to_iso8601(value)
+  defp format(%Decimal{} = value), do: Decimal.to_string(value)
+  defp format(%Regex{} = value), do: "/#{value.source}/"
+  defp format(value) when is_binary(value), do: "'#{value}'"
+  defp format({:unquoted, value}) when is_binary(value), do: value
+  defp format(value) when is_boolean(value), do: to_string(value)
+  defp format({which, value, opts}) when which in [:conjunction, :disjunction], do: human_readable_list(value, which, opts)
+  defp format(value), do: inspect(value)
+
+  defp maybe_quote(value, nil), do: value
+  defp maybe_quote(value, true), do: "'#{value}'"
+  defp maybe_quote(value, char) when is_binary(char), do: "#{char}#{value}#{char}"
 end

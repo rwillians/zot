@@ -3,81 +3,59 @@ defmodule Zot do
   A schema parser and validator library inspired by JavaScript's Zod.
   """
 
-  @typedoc ~S"""
-  Any Zot type.
-  """
-  @type type :: Zot.Type.t
+  alias Zot.Context
 
   @typedoc ~S"""
-  A Zot issue that describes a validation failure.
+  The input data to be parsed.
   """
-  @type issue :: Zot.Issue.t
+  @type input :: term
 
-  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-  #                               PROTOCOL API                                #
-  #                      keep them sorted alphabetically                      #
-  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+  @typedoc ~S"""
+  The output data after parsing.
+  """
+  @type output :: term
+
+  @typedoc ~S"""
+  A refinement function or MFA tuple.
+  """
+  @type refinement :: mfa | (input -> :ok | {:error, String.t()})
+
+  @typedoc ~S"""
+  A transformation function or MFA tuple.
+  """
+  @type transformation :: mfa | (input -> {:ok, input} | {:error, String.t()} | input)
+
+  @typedoc ~S"""
+  Any struct that implements the `Zot.Type` protocol.
+  """
+  @type type :: Zot.Type.t()
+
+  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+  #                          PROTOCOL API                           #
+  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
   @doc ~S"""
-  Parses a value with the given Zot type.
+  Parses the input with the given type.
   """
-  defdelegate parse(type, value, opts \\ []), to: Zot.Type
+  @spec parse(type, input, opts :: keyword) ::
+          {:ok, output}
+          | {:error, [Zot.Issue.t()]}
 
-  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-  #                                 TYPES API                                 #
-  #                      keep them sorted alphabetically                      #
-  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+  def parse(type, input, opts \\ []) do
+    ctx =
+      type
+      |> Context.new(input)
+      |> Context.parse(opts)
 
-  @doc ~S"""
-  Defines a type that accepts any value.
+    case Context.valid?(ctx) do
+      true -> {:ok, Context.get_parsed(ctx)}
+      false -> {:error, Context.get_issues(ctx)}
+    end
+  end
 
-  ## Examples
-
-      iex> Z.any()
-      iex> |> Z.parse(:foo)
-      {:ok, :foo}
-
-      iex> Z.any()
-      iex> |> Z.parse("foo")
-      {:ok, "foo"}
-
-      iex> Z.any()
-      iex> |> Z.parse(true)
-      {:ok, true}
-
-      iex> Z.any()
-      iex> |> Z.parse(3.14)
-      {:ok, 3.14}
-
-      iex> Z.any()
-      iex> |> Z.parse(42)
-      {:ok, 42}
-
-      iex> Z.any()
-      iex> |> Z.parse([])
-      {:ok, []}
-
-      iex> Z.any()
-      iex> |> Z.parse(~D[2025-11-22])
-      {:ok, ~D[2025-11-22]}
-
-      iex> Z.any()
-      iex> |> Z.parse(~U[2025-11-22T13:45:00.000Z])
-      {:ok, ~U[2025-11-22T13:45:00.000Z]}
-
-      iex> Z.any()
-      iex> |> Z.parse({:foo, :bar})
-      {:ok, {:foo, :bar}}
-
-      #iex> assert {:error, [issue]} =
-      #iex>   Z.any()
-      #iex>   |> Z.parse(nil)
-      #iex>
-      #iex> Exception.message(issue)
-      #"is required"
-
-  """
-  defdelegate any, to: Zot.Type.Any, as: :new
+  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+  #                         TYPE FACTORIES                          #
+  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
   @doc ~S"""
   Defines a type that accepts a boolean value.
@@ -99,483 +77,50 @@ defmodule Zot do
       iex> Exception.message(issue)
       "expected type boolean, got string"
 
+  ## Coercion
+
+  When coersion is enabled in the parsing options, this type can
+  coerce certain values into boolean:
+
+      iex> Z.boolean()
+      iex> |> Z.parse(1, coerce: true)
+      {:ok, true}
+
+      iex> Z.boolean()
+      iex> |> Z.parse(0, coerce: true)
+      {:ok, false}
+
+      iex> Z.boolean()
+      iex> |> Z.parse("true", coerce: true)
+      {:ok, true}
+
+      iex> Z.boolean()
+      iex> |> Z.parse("false", coerce: true)
+      {:ok, false}
+
+      iex> Z.boolean()
+      iex> |> Z.parse("on", coerce: true)
+      {:ok, true}
+
+      iex> Z.boolean()
+      iex> |> Z.parse("off", coerce: true)
+      {:ok, false}
+
+      iex> Z.boolean()
+      iex> |> Z.parse("enabled", coerce: true)
+      {:ok, true}
+
+      iex> Z.boolean()
+      iex> |> Z.parse("disabled", coerce: true)
+      {:ok, false}
+
+      iex> assert {:error, [issue]} =
+      iex>  Z.boolean()
+      iex>  |> Z.parse("foo", coerce: true)
+      iex>
+      iex> Exception.message(issue)
+      "cannot coerce 'foo' into boolean"
+
   """
   defdelegate boolean, to: Zot.Type.Boolean, as: :new
-
-  @doc ~S"""
-  Defines a zot type that accepts a date-time (ISO 8601) value.
-
-  ## Examples
-
-      iex> Z.date_time()
-      iex> |> Z.parse(~U[2025-11-22T13:45:00.000Z])
-      {:ok, ~U[2025-11-22T13:45:00.000Z]}
-
-      iex> assert {:error, [issue]} =
-      iex>   Z.date_time()
-      iex>   |> Z.parse("2025-11-22T13:45:00.000Z")
-      iex>
-      iex> Exception.message(issue)
-      "expected type DateTime, got string"
-
-      iex> Z.date_time()
-      iex> |> Z.parse("2025-11-22T13:45:00.000Z", coerce: true)
-      {:ok, ~U[2025-11-22T13:45:00.000Z]}
-
-      iex> assert {:error, [issue]} =
-      iex>   Z.date_time()
-      iex>   |> Z.parse("2025-11-22T13:45:00.000", coerce: true)
-      iex>
-      iex> Exception.message(issue)
-      "is missing the timezone offset"
-
-      iex> assert {:error, [issue]} =
-      iex>   Z.date_time()
-      iex>   |> Z.parse("2025-14-22T13:45:00.000Z", coerce: true)
-      iex>
-      iex> Exception.message(issue)
-      "is not a valid ISO 8601 date-time string"
-
-      iex> assert {:error, [issue]} =
-      iex>   Z.date_time()
-      iex>   |> Z.parse("2025-11-22T25:45:00.000Z", coerce: true)
-      iex>
-      iex> Exception.message(issue)
-      "is not a valid ISO 8601 date-time string"
-
-      iex> Z.date_time()
-      iex> |> Z.parse("2025-11-22T13:45:00.000-00:00", coerce: true)
-      {:ok, ~U[2025-11-22 13:45:00.000Z]}
-
-      iex> assert {:error, [issue]} =
-      iex>   Z.date_time(is_after: ~U[2025-11-22T14:00:00.000Z])
-      iex>   |> Z.parse(~U[2025-11-22T13:00:00.000Z])
-      iex>
-      iex> Exception.message(issue)
-      "expected a date-time after 2025-11-22T14:00:00.000Z, got 2025-11-22T13:00:00.000Z"
-
-      iex> assert {:error, [issue]} =
-      iex>   Z.date_time(is_before: ~U[2025-11-22T14:00:00.000Z])
-      iex>   |> Z.parse(~U[2025-11-22T15:00:00.000Z])
-      iex>
-      iex> Exception.message(issue)
-      "expected a date-time before 2025-11-22T14:00:00.000Z, got 2025-11-22T15:00:00.000Z"
-
-  """
-  defdelegate date_time(opts \\ []), to: Zot.Type.DateTime, as: :new
-
-  @doc ~S"""
-  Defines a field that accepts a decimal value.
-
-  ## Examples
-
-      iex> Z.decimal()
-      iex> |> Z.parse(Decimal.from_float(3.14))
-      {:ok, Decimal.new("3.14")}
-
-      iex> assert {:error, [issue]} =
-      iex>   Z.decimal()
-      iex>   |> Z.parse(12)
-      iex>
-      iex> Exception.message(issue)
-      "expected type Decimal, got integer"
-
-      iex> assert {:error, [issue]} =
-      iex>   Z.decimal(min: 3.14)
-      iex>   |> Z.parse(Decimal.new(3))
-      iex>
-      iex> Exception.message(issue)
-      "expected a number greater than or equal to 3.14, got 3.0"
-
-      iex> assert {:error, [issue]} =
-      iex>   Z.decimal(max: 42)
-      iex>   |> Z.parse(Decimal.new(69))
-      iex>
-      iex> Exception.message(issue)
-      "expected a number less than or equal to 42, got 69.0"
-
-      iex> Z.decimal()
-      iex> |> Z.parse(3.14, coerce: true)
-      {:ok, Decimal.new("3.14")}
-
-      iex> Z.decimal()
-      iex> |> Z.parse(42, coerce: true)
-      {:ok, Decimal.new(42)}
-
-      iex> Z.decimal()
-      iex> |> Z.parse("3.14", coerce: true)
-      {:ok, Decimal.from_float(3.14)}
-
-      iex> Z.decimal()
-      iex> |> Z.parse("42", coerce: true)
-      {:ok, Decimal.new(42)}
-
-  """
-  defdelegate decimal(opts \\ []), to: Zot.Type.Decimal, as: :new
-
-  @doc ~S"""
-  Defines a type that accepts an email address.
-
-  ## Examples
-
-      iex> Z.email()
-      iex> |> Z.parse("user@example.com")
-      {:ok, "user@example.com"}
-
-      iex> assert {:error, [issue]} =
-      iex>   Z.email()
-      iex>   |> Z.parse("")
-      iex>
-      iex> Exception.message(issue)
-      "is not a valid email address"
-
-      iex> assert {:error, [issue]} =
-      iex>   Z.email()
-      iex>   |> Z.parse("user")
-      iex>
-      iex> Exception.message(issue)
-      "is not a valid email address"
-
-      iex> assert {:error, [issue]} =
-      iex>   Z.email()
-      iex>   |> Z.parse("@example.com")
-      iex>
-      iex> Exception.message(issue)
-      "is not a valid email address"
-
-  """
-  defdelegate email(opts \\ []), to: Zot.Type.Email, as: :new
-
-  @doc ~S"""
-  Defines a type that accepts only a predefined set of values.
-
-  ## Examples
-
-      iex> Z.enum([:foo, :bar])
-      iex> |> Z.parse(:foo)
-      {:ok, :foo}
-
-      iex> Z.enum(["foo", "bar"])
-      iex> |> Z.parse("foo")
-      {:ok, "foo"}
-
-      iex> Z.enum([1, 2, 3, 5, 8, 13])
-      iex> |> Z.parse(13)
-      {:ok, 13}
-
-      iex> Z.enum([:foo, "bar", 3])
-      ** (ArgumentError) [Zot.Type.Enum.new/1] Values must be a list of atom, non-empty string or integer, where all values are of the same type.
-
-      iex> assert {:error, [issue]} =
-      iex>   Z.enum([:foo, :bar])
-      iex>   |> Z.parse(:baz)
-      iex>
-      iex> Exception.message(issue)
-      "expected one of :foo or :bar, got :baz"
-
-      iex> assert {:error, [issue]} =
-      iex>   Z.enum([:foo, :bar])
-      iex>   |> Z.parse("foo")
-      iex>
-      iex> Exception.message(issue)
-      "expected one of :foo or :bar, got 'foo'"
-
-      iex> Z.enum([:foo, :bar])
-      iex> |> Z.parse("foo", coerce: true)
-      {:ok, :foo}
-
-      iex> Z.enum([1, 2, 3, 5, 8, 13])
-      iex> |> Z.parse("13", coerce: true)
-      {:ok, 13}
-
-      iex> assert {:error, [issue]} =
-      iex>   Z.enum([:foo, :bar])
-      iex>   |> Z.parse(true)
-      iex>
-      iex> Exception.message(issue)
-      "expected type atom, string or integer, got boolean"
-
-  """
-  defdelegate enum(values), to: Zot.Type.Enum, as: :new
-
-  @doc ~S"""
-  Defines a type that accepts an integer value.
-
-  ## Examples
-
-      iex> Z.integer()
-      iex> |> Z.parse(3)
-      {:ok, 3}
-
-      iex> assert {:error, [issue]} =
-      iex>   Z.integer()
-      iex>   |> Z.parse("3")
-      iex>
-      iex> Exception.message(issue)
-      "expected type integer, got string"
-
-      iex> assert {:error, [issue]} =
-      iex>   Z.integer()
-      iex>   |> Z.parse(3.14)
-      iex>
-      iex> Exception.message(issue)
-      "expected type integer, got float"
-
-      iex> assert {:error, [issue]} =
-      iex>   Z.integer(is: 42)
-      iex>   |> Z.parse(13)
-      iex>
-      iex> Exception.message(issue)
-      "expected the exact integer 42"
-
-      iex> assert {:error, [issue]} =
-      iex>   Z.integer(min: 13)
-      iex>   |> Z.parse(12)
-      iex>
-      iex> Exception.message(issue)
-      "expected a number greater than or equal to 13, got 12"
-
-      iex> assert {:error, [issue]} =
-      iex>   Z.integer(max: 42)
-      iex>   |> Z.parse(43)
-      iex>
-      iex> Exception.message(issue)
-      "expected a number less than or equal to 42, got 43"
-
-  """
-  defdelegate integer(opts \\ []), to: Zot.Type.Integer, as: :new
-
-  @doc ~S"""
-  Defines a zot type that accepts a list of a given inner type.
-
-  ## Examples
-
-      iex> Z.integer()
-      iex> |> Z.list()
-      iex> |> Z.parse([1, 2, 3, 4, 5])
-      {:ok, [1, 2, 3, 4, 5]}
-
-      iex> Z.integer()
-      iex> |> Z.list()
-      iex> |> Z.parse([])
-      {:ok, []}
-
-      iex> assert {:error, [issue]} =
-      iex>   Z.integer()
-      iex>   |> Z.list()
-      iex>   |> Z.parse([1, "2", 3])
-      iex>
-      iex> assert [1] = issue.path
-      iex>
-      iex> Exception.message(issue)
-      "expected type integer, got string"
-
-      iex> assert {:error, [issue]} =
-      iex>   Z.integer()
-      iex>   |> Z.list(length: 2)
-      iex>   |> Z.parse([1, 2, 3])
-      iex>
-      iex> Exception.message(issue)
-      "should have exactly 2 items, got 3 items"
-
-      iex> assert {:error, [issue]} =
-      iex>   Z.integer()
-      iex>   |> Z.list(min: 3)
-      iex>   |> Z.parse([1, 2])
-      iex>
-      iex> Exception.message(issue)
-      "should have at least 3 items, got 2 items"
-
-      iex> assert {:error, [issue]} =
-      iex>   Z.integer()
-      iex>   |> Z.list(max: 2)
-      iex>   |> Z.parse([1, 2, 3])
-      iex>
-      iex> Exception.message(issue)
-      "should have at most 2 items, got 3 items"
-
-  """
-  defdelegate list(inner_type, opts \\ []), to: Zot.Type.List, as: :new
-
-  @doc ~S"""
-  Defines a type that accepts a map of a known shape.
-
-  ## Examples
-
-      iex> Z.map(%{name: Z.string(), age: Z.integer(min: 18)})
-      iex> |> Z.parse(%{name: "Alice", age: 30})
-      {:ok, %{name: "Alice", age: 30}}
-
-      iex> Z.map(%{name: Z.string(), age: Z.integer(min: 18)})
-      iex> |> Z.parse(%{"name" => "Alice", "age" => 30})
-      {:ok, %{name: "Alice", age: 30}}
-
-      iex> assert {:error, [issue]} =
-      iex>   Z.map(:strict, %{name: Z.string(), age: Z.integer(min: 18)})
-      iex>   |> Z.parse(%{name: "Alice", age: 30, foo: :bar})
-      iex>
-      iex> assert [:foo] = issue.path
-      iex>
-      iex> Exception.message(issue)
-      "unknown field"
-
-      iex> assert {:error, [issue]} =
-      iex>   Z.map(%{name: Z.string(), age: Z.integer(min: 18)})
-      iex>   |> Z.parse(%{name: "Alice", age: 15})
-      iex>
-      iex> assert [:age] = issue.path
-      iex>
-      iex> Exception.message(issue)
-      "expected a number greater than or equal to 18, got 15"
-
-      iex> assert {:error, [issue]} =
-      iex>   Z.map(%{name: Z.string(), age: Z.integer(min: 18)})
-      iex>   |> Z.parse(%{"name" => "Alice", "age" => 15})
-      iex>
-      iex> assert ["age"] = issue.path
-      iex>
-      iex> Exception.message(issue)
-      "expected a number greater than or equal to 18, got 15"
-
-      iex> Z.map(%{:name => Z.string(), "age" => Z.integer(min: 18)})
-      ** (ArgumentError) Only atom keys are allowed in a map's shape.
-
-  """
-  defdelegate map(mode \\ :strip, shape), to: Zot.Type.Map, as: :new
-
-  @doc ~S"""
-  Defines a type that accepts a number (float or integer).
-
-  ## Examples
-
-      iex> Z.number()
-      iex> |> Z.parse(42)
-      {:ok, 42}
-
-      iex> Z.number()
-      iex> |> Z.parse(3.14)
-      {:ok, 3.14}
-
-      iex> Z.number(is: 3.0)
-      iex> |> Z.parse(3)
-      {:ok, 3}
-
-      iex> assert {:error, [issue]} =
-      iex>   Z.number()
-      iex>   |> Z.parse("42")
-      iex>
-      iex> Exception.message(issue)
-      "expected type integer or float, got string"
-
-      iex> assert {:error, [issue]} =
-      iex>   Z.number(is: 42)
-      iex>   |> Z.parse(13)
-      iex>
-      iex> Exception.message(issue)
-      "expected the exact number 42"
-
-      iex> assert {:error, [issue]} =
-      iex>   Z.number(min: 13.1)
-      iex>   |> Z.parse(13.0)
-      iex>
-      iex> Exception.message(issue)
-      "expected a number greater than or equal to 13.1, got 13.0"
-
-      iex> assert {:error, [issue]} =
-      iex>   Z.number(max: 42)
-      iex>   |> Z.parse(42.5)
-      iex>
-      iex> Exception.message(issue)
-      "expected a number less than or equal to 42, got 42.5"
-
-  """
-  defdelegate number(opts \\ []), to: Zot.Type.Number, as: :new
-
-  @doc ~S"""
-  Defines a type that accepts a string.
-
-  ## Examples
-
-      iex> Z.string(trim: true)
-      iex> |> Z.parse(" hello world  ")
-      {:ok, "hello world"}
-
-      iex> assert {:error, [issue]} =
-      iex>   Z.string(length: 5)
-      iex>   |> Z.parse("foo")
-      iex>
-      iex> Exception.message(issue)
-      "expected string to have exactly 5 characters, got 3 characters"
-
-      iex> assert {:error, [issue]} =
-      iex>   Z.string(min: 3)
-      iex>   |> Z.parse("fu")
-      iex>
-      iex> Exception.message(issue)
-      "expected string to have at least 3 characters, got 2 characters"
-
-      iex> assert {:error, [issue]} =
-      iex>   Z.string(max: 3)
-      iex>   |> Z.parse("fudge")
-      iex>
-      iex> Exception.message(issue)
-      "expected string to have at most 3 characters, got 5 characters"
-
-      iex> assert {:error, [issue]} =
-      iex>   Z.string(starts_with: "foo")
-      iex>   |> Z.parse("bar")
-      iex>
-      iex> Exception.message(issue)
-      "expected string to start with 'foo'"
-
-      iex> assert {:error, [issue]} =
-      iex>   Z.string(ends_with: "bar")
-      iex>   |> Z.parse("foo")
-      iex>
-      iex> Exception.message(issue)
-      "expected string to end with 'bar'"
-
-      iex> assert {:error, [issue]} =
-      iex>   Z.string(regex: ~r/^foo/)
-      iex>   |> Z.parse("bar")
-      iex>
-      iex> Exception.message(issue)
-      "expected string to match the pattern /^foo/"
-
-  """
-  defdelegate string(opts \\ []), to: Zot.Type.String, as: :new
-
-  @doc ~S"""
-  Defines a type that accepts a map with a fixed set of keys and value
-  types and returns a struct.
-
-  ## Examples
-
-      iex> Z.struct(Address, %{line_1: Z.string(), city: Z.string()})
-      iex> |> Z.parse(%{line_1: "123 Main St", city: "Springfield"})
-      {:ok, %Address{line_1: "123 Main St", city: "Springfield"}}
-
-      iex> Z.struct(Address, %{line_1: Z.string(), city: Z.string()})
-      iex> |> Z.parse(%{"line_1" => "123 Main St", "city" => "Springfield"})
-      {:ok, %Address{line_1: "123 Main St", city: "Springfield"}}
-
-      iex> assert {:error, [issue1, issue2]} =
-      iex>   Z.struct(Address, %{line_1: Z.string(), city: Z.string()})
-      iex>   |> Z.parse(%{"line_1" => "123 Main St", "foo" => "bar"})
-      iex>
-      iex> assert issue1.path == ["foo"]
-      iex> assert Exception.message(issue1) == "unknown field"
-      iex>
-      iex> assert issue2.path == [:city]
-      iex> assert Exception.message(issue2) == "is required"
-
-  """
-  defdelegate struct(module, shape), to: Zot.Type.Struct, as: :new
-
-  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-  #                               MODIFIERS API                               #
-  #                      keep them sorted alphabetically                      #
-  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-  #
 end
