@@ -166,6 +166,23 @@ defmodule Zot do
   @doc since: "0.1.0"
   defdelegate boolean, to: Zot.Type.Boolean, as: :new
 
+  @doc ~S"""
+  Defines a type that accepts DateTime or an ISO 8601 string (when
+  coercion is enabled).
+
+  ## Examples
+
+      iex> Z.date_time()
+      iex> |> Z.parse(~U[2025-12-06T21:49:00Z])
+      {:ok, ~U[2025-12-06T21:49:00Z]}
+
+      iex> Z.date_time()
+      iex> |> Z.parse("2025-12-06T21:49:00Z", coerce: true)
+      {:ok, ~U[2025-12-06T21:49:00Z]}
+
+  """
+  defdelegate date_time, to: Zot.Type.DateTime, as: :new
+
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
   #                             EFFECTS                             #
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
