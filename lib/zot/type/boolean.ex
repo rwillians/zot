@@ -2,6 +2,7 @@ defmodule Zot.Type.Boolean do
   @moduledoc ~S"""
   Describes a type that accepts boolean values.
   """
+  @moduledoc since: "0.1.0"
 
   use Zot.Template
 

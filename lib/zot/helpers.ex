@@ -1,6 +1,5 @@
 defmodule Zot.Helpers do
-  @moduledoc ~S"""
-  """
+  @moduledoc false
 
   @doc ~S"""
   Guard clause that matches an `mfa` tuple.

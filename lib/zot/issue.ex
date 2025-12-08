@@ -1,15 +1,18 @@
 defmodule Zot.Issue do
   @moduledoc ~S"""
   """
+  @moduledoc since: "0.1.0"
 
   alias __MODULE__
 
   @typedoc ~S"""
   """
+  @typedoc since: "0.1.0"
   @type segment :: atom | String.t() | integer
 
   @typedoc ~S"""
   """
+  @typedoc since: "0.1.0"
   @type t :: %Issue{
           path: [segment],
           template: String.t(),
@@ -20,6 +23,10 @@ defmodule Zot.Issue do
                template: nil,
                variables: []
 
+  @doc ~S"""
+  Renders the issue's error message.
+  """
+  @doc since: "0.1.0"
   @impl Exception
   def message(%Issue{} = issue) do
     Enum.reduce(issue.variables, issue.template, fn {key, value}, acc ->
@@ -30,6 +37,7 @@ defmodule Zot.Issue do
   @doc ~S"""
   Creates a new issue.
   """
+  @doc since: "0.1.0"
   @spec issue(message) :: t
         when message: String.t()
 
@@ -40,6 +48,7 @@ defmodule Zot.Issue do
   @doc ~S"""
   Creates a new issue.
   """
+  @doc since: "0.1.0"
   @spec issue(template, variables) :: t
         when template: String.t(),
              variables: keyword
@@ -58,6 +67,7 @@ defmodule Zot.Issue do
   @doc ~S"""
   Creates a new issue.
   """
+  @doc since: "0.1.0"
   @spec issue(path, template, variables) :: t
         when path: [segment],
              template: String.t(),
@@ -70,6 +80,7 @@ defmodule Zot.Issue do
   @doc ~S"""
   Prepends segments to the issue's path.
   """
+  @doc since: "0.1.0"
   @spec prepend_path(issue, segments) :: issue
         when issue: t,
              segments: [term]

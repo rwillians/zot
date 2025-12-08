@@ -10,26 +10,31 @@ defmodule Zot do
   @typedoc ~S"""
   The input data to be parsed.
   """
+  @typedoc since: "0.1.0"
   @type input :: term
 
   @typedoc ~S"""
   The output data after parsing.
   """
+  @typedoc since: "0.1.0"
   @type output :: term
 
   @typedoc ~S"""
   A refinement function or MFA tuple.
   """
+  @typedoc since: "0.1.0"
   @type refinement :: mfa | (input -> true | false | :ok | {:error, String.t()})
 
   @typedoc ~S"""
   A transformation function or MFA tuple.
   """
+  @typedoc since: "0.1.0"
   @type transformation :: mfa | (output -> {:ok, output} | {:error, String.t()} | {:error, Exception.t()} | output)
 
   @typedoc ~S"""
   Any struct that implements the `Zot.Type` protocol.
   """
+  @typedoc since: "0.1.0"
   @type type :: Zot.Type.t()
 
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -39,6 +44,7 @@ defmodule Zot do
   @doc ~S"""
   Parses the input with the given type.
   """
+  @doc since: "0.1.0"
   @spec parse(type, input, opts :: keyword) ::
           {:ok, output}
           | {:error, [Zot.Issue.t()]}
@@ -89,6 +95,7 @@ defmodule Zot do
       {:ok, "string"}
 
   """
+  @doc since: "0.1.0"
   defdelegate any, to: Zot.Type.Any, as: :new
 
   @doc ~S"""
@@ -156,6 +163,7 @@ defmodule Zot do
       "cannot coerce 'foo' into boolean"
 
   """
+  @doc since: "0.1.0"
   defdelegate boolean, to: Zot.Type.Boolean, as: :new
 
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -201,6 +209,7 @@ defmodule Zot do
       {:ok, "TRUE"}
 
   """
+  @doc since: "0.1.0"
   @spec refine(type, refinement, [option]) :: type
         when option: {:error, String.t()}
 
@@ -230,6 +239,7 @@ defmodule Zot do
       {:ok, "TRUE"}
 
   """
+  @doc since: "0.1.0"
   @spec transform(type, transformation) :: type
 
   def transform(%_{__effects__: effects} = type, fun)

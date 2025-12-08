@@ -2,6 +2,7 @@ defmodule Zot.Type.Any do
   @moduledoc ~S"""
   Describes a type that accepts any value.
   """
+  @moduledoc since: "0.1.0"
 
   use Zot.Template
 

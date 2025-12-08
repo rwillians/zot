@@ -6,10 +6,11 @@ defprotocol Zot.Type do
 
   @doc ~S"""
   """
+  @doc since: "0.1.0"
   @spec parse(type, value, opts) ::
           {:ok, parsed_value}
-          | {:error, [Zot.Issue.t()]}
-          | {:error, [Zot.Issue.t()], partial_value}
+          | {:error, [Zot.Issue.t(), ...]}
+          | {:error, [Zot.Issue.t(), ...], partial_value}
         when type: t,
              value: term,
              opts: keyword,

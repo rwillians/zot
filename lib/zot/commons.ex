@@ -1,12 +1,16 @@
 defmodule Zot.Commons do
   @moduledoc ~S"""
+  Common functions and macros used across type implementations.
   """
+  @moduledoc since: "0.1.0"
 
   import Zot.Helpers, only: [typeof: 1]
   import Zot.Issue, only: [issue: 2]
 
   @doc ~S"""
+  Imports common functions and macros used across type implementations.
   """
+  @doc since: "0.1.0"
   defmacro __using__(_) do
     quote do
       import unquote(__MODULE__)
@@ -20,6 +24,7 @@ defmodule Zot.Commons do
   @doc ~S"""
   Validates that the given raw value is of the expected type.
   """
+  @doc since: "0.1.0"
   def validate_type([], is: "list"), do: :ok
   def validate_type([], is: "keyword"), do: :ok
 

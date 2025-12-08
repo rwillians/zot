@@ -2,6 +2,7 @@ defmodule Zot.Context do
   @moduledoc ~S"""
   Contextual information about a value subject to parsing / validation.
   """
+  @moduledoc since: "0.1.0"
 
   import Zot.Issue, only: [prepend_path: 2]
 
@@ -29,6 +30,7 @@ defmodule Zot.Context do
   @doc ~S"""
   Creates a new context.
   """
+  @doc since: "0.1.0"
   def new(%_{} = type, path \\ [], input)
       when is_list(path),
       do: %Context{path: path, input: input, type: type}
@@ -36,6 +38,7 @@ defmodule Zot.Context do
   @doc ~S"""
   Adds an issue to the context.
   """
+  @doc since: "0.1.0"
   @spec add_issue(ctx :: t, issue :: Zot.Issue.t()) :: t
   @spec add_issue(ctx :: t, message :: String.t()) :: t
   @spec add_issue(ctx :: t, template :: String.t(), variables :: keyword) :: t
@@ -55,6 +58,7 @@ defmodule Zot.Context do
   Gets the issues from the context, prepending the context's path to
   each issue.
   """
+  @doc since: "0.1.0"
   @spec get_issues(ctx :: t) :: [Zot.Issue.t()]
 
   def get_issues(%Context{} = ctx), do: Enum.map(ctx.issues, &prepend_path(&1, ctx.path))
@@ -62,6 +66,7 @@ defmodule Zot.Context do
   @doc ~S"""
   Gets the parsed value from the context.
   """
+  @doc since: "0.1.0"
   @spec get_parsed(ctx :: t) :: term
 
   def get_parsed(%Context{} = ctx), do: ctx.parsed
@@ -69,6 +74,7 @@ defmodule Zot.Context do
   @doc ~S"""
   Sets the path of the context.
   """
+  @doc since: "0.1.0"
   @spec put_path(ctx :: t, path :: [term]) :: t
 
   def put_path(%Context{} = ctx, path)
@@ -78,6 +84,7 @@ defmodule Zot.Context do
   @doc ~S"""
   Parses the given context.
   """
+  @doc since: "0.1.0"
   @spec parse(ctx :: t, opts :: keyword) :: t
 
   def parse(%Context{} = ctx, opts \\ []) do
@@ -89,6 +96,7 @@ defmodule Zot.Context do
   @doc ~S"""
   Checks whether the context is valid.
   """
+  @doc since: "0.1.0"
   @spec valid?(ctx :: t) :: boolean
 
   def valid?(%Context{} = ctx), do: ctx.valid?
