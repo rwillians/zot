@@ -3,6 +3,29 @@ defmodule Zot.Helpers do
   """
 
   @doc ~S"""
+  Guard clause that matches an `mfa` tuple.
+
+      iex> is_mfa({MyModule, :my_function, []})
+      true
+
+      iex> is_mfa({"MyModule", :my_function, []})
+      false
+
+      iex> is_mfa({MyModule, "my_function", []})
+      false
+
+      iex> is_mfa({MyModule, :my_function, nil})
+      false
+
+  """
+  defguard is_mfa(value)
+           when is_tuple(value) and
+                  tuple_size(value) == 3 and
+                  is_atom(elem(value, 0)) and
+                  is_atom(elem(value, 1)) and
+                  is_list(elem(value, 2))
+
+  @doc ~S"""
   Returns the given module's name without the `"Elixir."` prefix.
   """
   @spec name(module) :: String.t()

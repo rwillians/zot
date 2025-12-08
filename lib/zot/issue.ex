@@ -106,8 +106,8 @@ defmodule Zot.Issue do
   defp format(%Decimal{} = value), do: Decimal.to_string(value)
   defp format(%Regex{} = value), do: "/#{value.source}/"
   defp format(value) when is_binary(value), do: "'#{value}'"
-  defp format({:unquoted, value}) when is_binary(value), do: value
   defp format(value) when is_boolean(value), do: to_string(value)
+  defp format({:unquoted, value}) when is_binary(value), do: value
   defp format({which, value, opts}) when which in [:conjunction, :disjunction], do: human_readable_list(value, which, opts)
   defp format(value), do: inspect(value)
 

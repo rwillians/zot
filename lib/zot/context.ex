@@ -1,6 +1,6 @@
 defmodule Zot.Context do
   @moduledoc ~S"""
-  Contextual informatino about a value subject to parsing / validation.
+  Contextual information about a value subject to parsing / validation.
   """
 
   import Zot.Issue, only: [prepend_path: 2]
@@ -82,6 +82,7 @@ defmodule Zot.Context do
 
   def parse(%Context{} = ctx, opts \\ []) do
     with %Context{valid?: true} = ctx <- parse_type(ctx, opts),
+         %Context{valid?: true} = ctx <- apply_effects(ctx),
          do: ctx
   end
 
@@ -104,6 +105,36 @@ defmodule Zot.Context do
       {:error, issues, parsed} -> ctx |> add_issues(issues) |> put_parsed(parsed)
     end
   end
+
+  defp apply_effects(%Context{} = ctx) do
+    Enum.reduce_while(ctx.type.__effects__, ctx, fn effect, acc ->
+      case apply_effect(acc, effect) do
+        {:ok, acc} -> {:cont, acc}
+        {:error, acc} -> {:halt, acc}
+      end
+    end)
+  end
+
+  defp apply_effect(%Context{} = ctx, {:refine, fun, error}) do
+    case call(fun, ctx.parsed) do
+      true -> {:ok, ctx}
+      :ok -> {:ok, ctx}
+      false -> {:error, add_issue(ctx, error)}
+      {:error, <<error::binary>>} -> {:error, add_issue(ctx, error)}
+    end
+  end
+
+  defp apply_effect(%Context{} = ctx, {:transform, fun}) do
+    case call(fun, ctx.parsed) do
+      {:ok, value} -> {:ok, put_parsed(ctx, value)}
+      {:error, <<error::binary>>} -> {:error, add_issue(ctx, error)}
+      {:error, %_{} = error} -> {:error, add_issue(ctx, Exception.message(error))}
+      value -> {:ok, put_parsed(ctx, value)}
+    end
+  end
+
+  defp call({m, f, a}, value), do: apply(m, f, [value | a])
+  defp call(fun, value), do: fun.(value)
 
   defp put_parsed(ctx, parsed), do: %{ctx | parsed: parsed, parse_score: score(parsed)}
 
