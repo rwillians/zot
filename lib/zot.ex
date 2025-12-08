@@ -60,6 +60,38 @@ defmodule Zot do
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
   @doc ~S"""
+  Defines a type that accepts any value.
+
+  ## Examples
+
+      iex> Z.any()
+      iex> |> Z.parse(:foo)
+      {:ok, :foo}
+
+      iex> Z.any()
+      iex> |> Z.parse(true)
+      {:ok, true}
+
+      iex> Z.any()
+      iex> |> Z.parse(Decimal.from_float(3.14))
+      {:ok, Decimal.from_float(3.14)}
+
+      iex> Z.any()
+      iex> |> Z.parse(3.14)
+      {:ok, 3.14}
+
+      iex> Z.any()
+      iex> |> Z.parse(42)
+      {:ok, 42}
+
+      iex> Z.any()
+      iex> |> Z.parse("string")
+      {:ok, "string"}
+
+  """
+  defdelegate any, to: Zot.Type.Any, as: :new
+
+  @doc ~S"""
   Defines a type that accepts a boolean value.
 
   ## Examples
@@ -125,6 +157,10 @@ defmodule Zot do
 
   """
   defdelegate boolean, to: Zot.Type.Boolean, as: :new
+
+  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+  #                             EFFECTS                             #
+  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
   @doc ~S"""
   Adds a refinement validation step to the given type.
