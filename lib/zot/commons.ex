@@ -5,7 +5,7 @@ defmodule Zot.Commons do
   @moduledoc since: "0.1.0"
 
   import Zot.Helpers, only: [resolve: 1, typeof: 1]
-  import Zot.Issue, only: [issue: 2]
+  import Zot.Issue, only: [issue: 1, issue: 2]
 
   @doc ~S"""
   Imports common functions and macros used across type implementations.
@@ -18,6 +18,32 @@ defmodule Zot.Commons do
       import Zot.Issue, only: [issue: 1, issue: 2, issue: 3]
 
       alias Zot.Context
+    end
+  end
+
+  @doc ~S"""
+  Validates the given email address against the specified ruleset.
+  """
+  def validate_email(email, ruleset \\ :gmail)
+  def validate_email("", _), do: {:error, [issue("is not a valid email address")]}
+
+  @gmail ~r/^(?!\.)(?!.*\.\.)([A-Za-z0-9_'+\-\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\-]*\.)+[A-Za-z]{2,}$/
+  @html5 ~r/^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/
+  @rfc5322 ~r/^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+  @unicode ~r/^[^\s@"]{1,64}@[^\s@]{1,255}$/u
+
+  def validate_email(value, ruleset) do
+    regex =
+      case ruleset do
+        :gmail -> @gmail
+        :html5 -> @html5
+        :rfc5322 -> @rfc5322
+        :unicode -> @unicode
+      end
+
+    case Regex.match?(regex, value) do
+      true -> :ok
+      false -> {:error, [issue("is not a valid email address")]}
     end
   end
 

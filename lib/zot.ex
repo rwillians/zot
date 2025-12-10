@@ -229,6 +229,39 @@ defmodule Zot do
   """
   defdelegate decimal(opts \\ []), to: Zot.Type.Decimal, as: :new
 
+  @doc ~S"""
+  Defines a type that accepts an email address.
+
+  ## Examples
+
+      iex> Z.email()
+      iex> |> Z.parse("user@example.com")
+      {:ok, "user@example.com"}
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.email()
+      iex>   |> Z.parse("")
+      iex>
+      iex> Exception.message(issue)
+      "is not a valid email address"
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.email()
+      iex>   |> Z.parse("user")
+      iex>
+      iex> Exception.message(issue)
+      "is not a valid email address"
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.email()
+      iex>   |> Z.parse("@example.com")
+      iex>
+      iex> Exception.message(issue)
+      "is not a valid email address"
+
+  """
+  defdelegate email(opts \\ []), to: Zot.Type.Email, as: :new
+
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
   #                             EFFECTS                             #
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
