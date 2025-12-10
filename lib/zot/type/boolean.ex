@@ -7,8 +7,6 @@ defmodule Zot.Type.Boolean do
   use Zot.Template
 
   deftype []
-
-  def new, do: %__MODULE__{}
 end
 
 defimpl Zot.Type, for: Zot.Type.Boolean do
@@ -20,6 +18,10 @@ defimpl Zot.Type, for: Zot.Type.Boolean do
         :ok <- validate_type(value, is: "boolean"),
         do: {:ok, value}
   end
+
+  #
+  #   PRIVATE
+  #
 
   defp coerce(nil, value), do: {:ok, value}
   defp coerce(false, value), do: {:ok, value}

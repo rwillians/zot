@@ -8,8 +8,6 @@ defmodule Zot.Type.DateTime do
   use Zot.Template
 
   deftype []
-
-  def new, do: %__MODULE__{}
 end
 
 defimpl Zot.Type, for: Zot.Type.DateTime do
