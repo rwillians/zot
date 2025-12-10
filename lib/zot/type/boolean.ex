@@ -14,7 +14,7 @@ defimpl Zot.Type, for: Zot.Type.Boolean do
 
   @impl Zot.Type
   def parse(%Zot.Type.Boolean{}, value, opts \\ []) do
-    with {:ok, value} <- coerce(opts[:coerce], value),
+    with {:ok, value} <- coerce(value, get_coerce_flag(opts)),
         :ok <- validate_type(value, is: "boolean"),
         do: {:ok, value}
   end
@@ -23,14 +23,13 @@ defimpl Zot.Type, for: Zot.Type.Boolean do
   #   PRIVATE
   #
 
-  defp coerce(nil, value), do: {:ok, value}
-  defp coerce(false, value), do: {:ok, value}
-  defp coerce(_, value) when is_boolean(value), do: {:ok, value}
-  defp coerce(_, value) when value in [1, 0], do: {:ok, value == 1}
+  defp coerce(value, false), do: {:ok, value}
+  defp coerce(value, _) when is_boolean(value), do: {:ok, value}
+  defp coerce(value, _) when value in [1, 0], do: {:ok, value == 1}
 
   @truthy ["true", "1", "on", "enabled"]
   @falsy ["false", "0", "off", "disabled"]
-  defp coerce(_, value) when is_binary(value) do
+  defp coerce(value, _) when is_binary(value) do
     case String.downcase(value) do
       str when str in @truthy -> {:ok, true}
       str when str in @falsy -> {:ok, false}
@@ -39,5 +38,5 @@ defimpl Zot.Type, for: Zot.Type.Boolean do
   end
 
   # let it fail in the type validation
-  defp coerce(_, value), do: {:ok, value}
+  defp coerce(value, _), do: {:ok, value}
 end

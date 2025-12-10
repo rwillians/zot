@@ -5,8 +5,6 @@ defmodule Zot do
 
   import Zot.Helpers, only: [is_mfa: 1]
 
-  alias Zot.Context
-
   @typedoc ~S"""
   The input data to be parsed.
   """
@@ -52,12 +50,12 @@ defmodule Zot do
   def parse(type, input, opts \\ []) do
     ctx =
       type
-      |> Context.new(input)
-      |> Context.parse(opts)
+      |> Zot.Context.new(input)
+      |> Zot.Context.parse(opts)
 
-    case Context.valid?(ctx) do
-      true -> {:ok, Context.get_parsed(ctx)}
-      false -> {:error, Context.get_issues(ctx)}
+    case Zot.Context.valid?(ctx) do
+      true -> {:ok, Zot.Context.get_parsed(ctx)}
+      false -> {:error, Zot.Context.get_issues(ctx)}
     end
   end
 
@@ -182,6 +180,54 @@ defmodule Zot do
 
   """
   defdelegate date_time, to: Zot.Type.DateTime, as: :new
+
+  @doc ~S"""
+  Defines a type that accepts Decimal values.
+
+  ## Examples
+
+      iex> Z.decimal()
+      iex> |> Z.parse(Decimal.new("3.14"))
+      {:ok, Decimal.new("3.14")}
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.decimal(is: 42)
+      iex>   |> Z.parse(Decimal.new(43))
+      iex>
+      iex> Exception.message(issue)
+      "must be exactly 42, got 43"
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.decimal(min: 42)
+      iex>   |> Z.parse(Decimal.new("3.14"))
+      iex>
+      iex> Exception.message(issue)
+      "must be greater than or equal to 42, got 3.14"
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.decimal(max: 42)
+      iex>   |> Z.parse(Decimal.new("43"))
+      iex>
+      iex> Exception.message(issue)
+      "must be less than or equal to 42, got 43"
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.decimal()
+      iex>   |> Z.parse(3.14)
+      iex>
+      iex> Exception.message(issue)
+      "expected type Decimal, got float"
+
+      iex> Z.decimal()
+      iex> |> Z.parse(42, coerce: true)
+      {:ok, Decimal.new(42)}
+
+      iex> Z.decimal()
+      iex> |> Z.parse("12.345", coerce: true)
+      {:ok, Decimal.new("12.345")}
+
+  """
+  defdelegate decimal(opts \\ []), to: Zot.Type.Decimal, as: :new
 
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
   #                             EFFECTS                             #

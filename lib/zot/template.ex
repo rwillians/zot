@@ -12,6 +12,7 @@ defmodule Zot.Template do
     quote do
       import unquote(__MODULE__)
       import Zot.Helpers, except: [deunion: 1, exclude: 2, name: 1, parameterized: 1, union: 1]
+      import Zot.Parameterized, only: [parameterized: 3]
 
       @new true
     end

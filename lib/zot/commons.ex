@@ -4,7 +4,7 @@ defmodule Zot.Commons do
   """
   @moduledoc since: "0.1.0"
 
-  import Zot.Helpers, only: [typeof: 1]
+  import Zot.Helpers, only: [resolve: 1, typeof: 1]
   import Zot.Issue, only: [issue: 2]
 
   @doc ~S"""
@@ -14,12 +14,17 @@ defmodule Zot.Commons do
   defmacro __using__(_) do
     quote do
       import unquote(__MODULE__)
-      import Zot.Helpers, only: [typeof: 1]
+      import Zot.Helpers, only: [get_coerce_flag: 1, typeof: 1]
       import Zot.Issue, only: [issue: 1, issue: 2, issue: 3]
 
       alias Zot.Context
     end
   end
+
+  @doc ~S"""
+  Validates a number against given constraints.
+  """
+  def validate_number(value, [_ | _] = constraints), do: validate(value, constraints)
 
   @doc ~S"""
   Validates that the given raw value is of the expected type.
@@ -53,4 +58,56 @@ defmodule Zot.Commons do
       {:error, [issue("expected type to be one of %{expected}, got %{actual}", variables)]}
     end
   end
+
+  #
+  #   PRIVATE
+  #
+
+  defp validate(_, []), do: :ok
+  defp validate(value, [{_, {nil, _}} | rest]), do: validate(value, rest)
+
+  defp validate(actual, [{:is, {n, opts}} | rest]) do
+    expected = resolve(n)
+
+    case eq(actual, expected) do
+      true -> validate(actual, rest)
+      false -> {:error, [issue(opts.error, actual: actual, expected: expected)]}
+    end
+  end
+
+  defp validate(actual, [{:gte, {n, opts}} | rest]) do
+    expected = resolve(n)
+
+    case gte(actual, expected) do
+      true -> validate(actual, rest)
+      false -> {:error, [issue(opts.error, actual: actual, expected: expected)]}
+    end
+  end
+
+  defp validate(actual, [{:lte, {n, opts}} | rest]) do
+    expected = resolve(n)
+
+    case lte(actual, expected) do
+      true -> validate(actual, rest)
+      false -> {:error, [issue(opts.error, actual: actual, expected: expected)]}
+    end
+  end
+
+  defp eq(a, b) when is_number(a) and is_number(b), do: (a * 1.0) == (b * 1.0)
+  defp eq(%Date{} = a, %Date{} = b), do: Date.compare(a, b) == :eq
+  defp eq(%DateTime{} = a, %DateTime{} = b), do: DateTime.compare(a, b) == :eq
+  defp eq(%Decimal{} = a, %Decimal{} = b), do: Decimal.equal?(a, b)
+  defp eq(%Time{} = a, %Time{} = b), do: Time.compare(a, b) == :eq
+
+  defp gte(a, b) when is_number(a) and is_number(b), do: (a * 1.0) >= (b * 1.0)
+  defp gte(%Date{} = a, %Date{} = b), do: Date.compare(a, b) in [:gt, :eq]
+  defp gte(%DateTime{} = a, %DateTime{} = b), do: DateTime.compare(a, b) in [:gt, :eq]
+  defp gte(%Decimal{} = a, %Decimal{} = b), do: Decimal.compare(a, b) in [:gt, :eq]
+  defp gte(%Time{} = a, %Time{} = b), do: Time.compare(a, b) in [:gt, :eq]
+
+  defp lte(a, b) when is_number(a) and is_number(b), do: (a * 1.0) <= (b * 1.0)
+  defp lte(%Date{} = a, %Date{} = b), do: Date.compare(a, b) in [:lt, :eq]
+  defp lte(%DateTime{} = a, %DateTime{} = b), do: DateTime.compare(a, b) in [:lt, :eq]
+  defp lte(%Decimal{} = a, %Decimal{} = b), do: Decimal.compare(a, b) in [:lt, :eq]
+  defp lte(%Time{} = a, %Time{} = b), do: Time.compare(a, b) in [:lt, :eq]
 end

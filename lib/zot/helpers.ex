@@ -88,13 +88,14 @@ defmodule Zot.Helpers do
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
   @doc ~S"""
-  Determines whether coercion is enabled from the given parser options.
+  Get's the coerce flag from the given parser options. By default it's
+  set to `false`. Any value other than `false` is considered enabled.
   """
-  @spec coerce?(opts) :: boolean | atom
+  @spec get_coerce_flag(opts) :: boolean | atom
         when opts: keyword
 
-  def coerce?([]), do: false
-  def coerce?([{_, _} | _] = opts), do: Keyword.get(opts, :coerce, false)
+  def get_coerce_flag([]), do: false
+  def get_coerce_flag([{_, _} | _] = opts), do: Keyword.get(opts, :coerce) || false
 
   @doc ~S"""
   Splits a union type into a list of its component types.

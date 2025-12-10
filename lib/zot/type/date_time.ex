@@ -15,7 +15,7 @@ defimpl Zot.Type, for: Zot.Type.DateTime do
 
   @impl Zot.Type
   def parse(%Zot.Type.DateTime{}, value, opts) do
-    with {:ok, value} <- coerce(value, opts[:coerce] || false),
+    with {:ok, value} <- coerce(value, get_coerce_flag(opts)),
          :ok <- validate_type(value, is: "DateTime"),
          do: {:ok, value}
   end
