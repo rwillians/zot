@@ -123,11 +123,11 @@ defmodule Zot.Context do
     end)
   end
 
-  defp apply_effect(%Context{} = ctx, {:refine, fun, error}) do
+  defp apply_effect(%Context{} = ctx, {:refine, fun, opts}) do
     case call(fun, ctx.parsed) do
       true -> {:ok, ctx}
       :ok -> {:ok, ctx}
-      false -> {:error, add_issue(ctx, error)}
+      false -> {:error, add_issue(ctx, opts[:error] || "is invalid")}
       {:error, <<error::binary>>} -> {:error, add_issue(ctx, error)}
     end
   end
@@ -136,7 +136,7 @@ defmodule Zot.Context do
     case call(fun, ctx.parsed) do
       {:ok, value} -> {:ok, put_parsed(ctx, value)}
       {:error, <<error::binary>>} -> {:error, add_issue(ctx, error)}
-      {:error, %_{} = error} -> {:error, add_issue(ctx, Exception.message(error))}
+      {:error, %_{__exception__: _} = error} -> {:error, add_issue(ctx, Exception.message(error))}
       value -> {:ok, put_parsed(ctx, value)}
     end
   end

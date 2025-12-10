@@ -279,7 +279,7 @@ defmodule Zot do
   def refine(%_{__effects__: effects} = type, fun, opts \\ [])
       when is_mfa(fun)
       when is_function(fun, 1),
-      do: %{type | __effects__: effects ++ [{:refine, fun, opts[:error] || "is invalid"}]}
+      do: %{type | __effects__: effects ++ [{:refine, fun, opts}]}
 
   @doc ~S"""
   Adds a transformation step to the given type.
