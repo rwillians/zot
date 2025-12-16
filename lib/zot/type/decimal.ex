@@ -7,9 +7,10 @@ defmodule Zot.Type.Decimal do
 
   import Kernel, except: [min: 2, max: 2]
 
-  deftype is:  {nil, t: Zot.Parameterized.t(nil | Decimal.t() | number)},
-          min: {nil, t: Zot.Parameterized.t(nil | Decimal.t() | number)},
-          max: {nil, t: Zot.Parameterized.t(nil | Decimal.t() | number)}
+  deftype is:        {nil, t: Zot.Parameterized.t(nil | Decimal.t() | number)},
+          min:       {nil, t: Zot.Parameterized.t(nil | Decimal.t() | number)},
+          max:       {nil, t: Zot.Parameterized.t(nil | Decimal.t() | number)},
+          precision: {nil, t: nil | non_neg_integer()}
 
   @opts error: "must be exactly %{expected}, got %{actual}"
   def is(%Zot.Type.Decimal{} = type, value, opts \\ [])
@@ -32,6 +33,11 @@ defmodule Zot.Type.Decimal do
       when is_number(value),
       do: %{type | max: parameterized(to_decimal(value), @opts, opts)}
 
+  def precision(%Zot.Type.Decimal{} = type, value)
+      when is_nil(value)
+      when is_integer(value) and value >= 0,
+      do: %{type | precision: value}
+
   #
   #   PRIVATE
   #
@@ -50,7 +56,7 @@ defimpl Zot.Type, for: Zot.Type.Decimal do
     with {:ok, value} <- coerce(value, get_coerce_flag(opts)),
          :ok <- validate_type(value, is: "Decimal"),
          :ok <- validate_number(value, is: type.is, gte: type.min, lte: type.max),
-         do: {:ok, value}
+         do: {:ok, apply_precision(value, type.precision)}
   end
 
   #
@@ -71,4 +77,7 @@ defimpl Zot.Type, for: Zot.Type.Decimal do
 
   # let it fail in the type validation
   defp coerce(value, _), do: {:ok, value}
+
+  defp apply_precision(%Decimal{} = value, nil), do: value
+  defp apply_precision(%Decimal{} = value, places), do: Decimal.round(value, places)
 end

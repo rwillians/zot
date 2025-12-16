@@ -262,6 +262,54 @@ defmodule Zot do
   """
   defdelegate email(opts \\ []), to: Zot.Type.Email, as: :new
 
+  @doc ~S"""
+  Defines a type that accepts float values.
+
+  ## Examples
+
+      iex> Z.float()
+      iex> |> Z.parse(3.14)
+      {:ok, 3.14}
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.float(is: 3.14)
+      iex>   |> Z.parse(2.71)
+      iex>
+      iex> Exception.message(issue)
+      "must be exactly 3.14, got 2.71"
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.float(min: 3.14)
+      iex>   |> Z.parse(2.71)
+      iex>
+      iex> Exception.message(issue)
+      "must be greater than or equal to 3.14, got 2.71"
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.float(max: 3.14)
+      iex>   |> Z.parse(42.0)
+      iex>
+      iex> Exception.message(issue)
+      "must be less than or equal to 3.14, got 42.0"
+
+      iex> Z.float(precision: 2)
+      iex> |> Z.parse(3.14123456789)
+      {:ok, 3.14}
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.float()
+      iex>   |> Z.parse("42.0")
+      iex>
+      iex> Exception.message(issue)
+      "expected type float, got string"
+
+      iex> Z.float()
+      iex> |> Z.parse("42", coerce: true)
+      {:ok, 42.0}
+
+  """
+  defdelegate float(opts \\ []), to: Zot.Type.Float, as: :new
+
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
   #                             EFFECTS                             #
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
