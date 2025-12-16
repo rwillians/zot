@@ -310,6 +310,58 @@ defmodule Zot do
   """
   defdelegate float(opts \\ []), to: Zot.Type.Float, as: :new
 
+  @doc ~S"""
+  Defines a type that accepts integer values.
+
+  ## Examples
+
+      iex> Z.integer()
+      iex> |> Z.parse(42)
+      {:ok, 42}
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.integer(is: 42)
+      iex>   |> Z.parse(13)
+      iex>
+      iex> Exception.message(issue)
+      "must be exactly 42, got 13"
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.integer(min: 13)
+      iex>   |> Z.parse(12)
+      iex>
+      iex> Exception.message(issue)
+      "must be greater than or equal to 13, got 12"
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.integer(max: 13)
+      iex>   |> Z.parse(42)
+      iex>
+      iex> Exception.message(issue)
+      "must be less than or equal to 13, got 42"
+
+      iex> assert {:error, [issue]} =
+      iex>   Z.integer()
+      iex>   |> Z.parse("42")
+      iex>
+      iex> Exception.message(issue)
+      "expected type integer, got string"
+
+      iex> Z.integer()
+      iex> |> Z.parse("42", coerce: true)
+      {:ok, 42}
+
+      iex> Z.integer()
+      iex> |> Z.parse("42.0", coerce: true)
+      {:ok, 42}
+
+      iex> Z.integer()
+      iex> |> Z.parse("42.9", coerce: true)
+      {:ok, 43}
+
+  """
+  defdelegate integer(opts \\ []), to: Zot.Type.Integer, as: :new
+
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
   #                             EFFECTS                             #
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
