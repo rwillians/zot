@@ -1,31 +1,48 @@
 defmodule Zot.Parameterized do
-  @moduledoc since: "0.1.0"
+  @moduledoc ~S"""
+  Describes a type setting with parameters, such as a custom error
+  message.
+  """
+
+  defstruct [:value, :params]
 
   @typedoc ~S"""
-  The type spec of a parameterized modifier.
+  The value of a parameterized type setting.
   """
-  @type t(inner_type) :: {inner_type, params}
+  @type t(type) :: %Zot.Parameterized{
+          value: type,
+          params: params
+        }
 
   @typedoc ~S"""
-  Map of parameters.
+  Fallback type for a parameterized type setting.
   """
-  @type params :: %{error: String.t()}
+  @type t :: t(term)
+
+  @typedoc ~S"""
+  The parameters for a parameterized type setting.
+  """
+  @type params :: %{
+          error: String.t()
+        }
 
   @doc ~S"""
-  Creates a parameterized value.
+  Creates a parameterized type setting.
   """
-  @spec parameterized(value, defaults, params) :: params
+  @spec parameterized(value, defaults, opts) :: t
         when value: term,
-             defaults: keyword,
-             params: keyword
+             defaults: map | keyword,
+             opts: map | keyword
 
-  def parameterized(value, defaults \\ [], params) do
-    params =
-      defaults
-      |> Keyword.merge(params)
-      |> Map.new()
-      |> Map.take([:error])
-
-    {value, params}
+  def parameterized(value, defaults \\ [], opts) do
+    %Zot.Parameterized{
+      value: value,
+      params: Map.merge(Enum.into(defaults, %{}), Enum.into(opts, %{}))
+    }
   end
+
+  @doc ~S"""
+  Creates a parameterized type setting.
+  """
+  defdelegate p(value, defaults \\ [], opts), to: __MODULE__, as: :parameterized
 end

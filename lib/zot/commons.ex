@@ -1,87 +1,44 @@
 defmodule Zot.Commons do
   @moduledoc ~S"""
-  Common functions and macros used across type implementations.
+  Common functions used across type implementations.
   """
-  @moduledoc since: "0.1.0"
 
-  import Zot.Helpers, only: [resolve: 1, typeof: 1]
-  import Zot.Issue, only: [issue: 1, issue: 2]
+  import Zot.Issue, only: [issue: 2]
 
   @doc ~S"""
-  Imports common functions and macros used across type implementations.
   """
-  @doc since: "0.1.0"
   defmacro __using__(_) do
     quote do
       import unquote(__MODULE__)
-      import Zot.Helpers, only: [get_coerce_flag: 1, typeof: 1]
-      import Zot.Issue, only: [issue: 1, issue: 2, issue: 3]
-
-      alias Zot.Context
+      import Zot.Issue, only: [issue: 1, issue: 2]
     end
   end
 
-  @doc ~S"""
-  Validates the given email address against the specified ruleset.
-  """
-  def validate_email(email, ruleset \\ :gmail)
-  def validate_email("", _), do: {:error, [issue("is not a valid email address")]}
+  def dump(nil), do: nil
+  def dump(value) when is_binary(value), do: value
+  def dump(value) when is_boolean(value), do: to_string(value)
+  def dump(value) when is_atom(value), do: Atom.to_string(value)
+  def dump(value) when is_number(value), do: value
+  def dump(%Date{} = value), do: Date.to_iso8601(value)
+  def dump(%DateTime{} = value), do: DateTime.to_iso8601(value)
+  def dump(%Decimal{} = value), do: Decimal.to_float(value)
+  def dump(%Regex{} = value), do: "/" <> Regex.source(value) <> "/"
+  def dump(%Zot.Parameterized{} = param), do: dump(param.value)
+  def dump(value), do: to_string(value)
 
-  @gmail ~r/^(?!\.)(?!.*\.\.)([A-Za-z0-9_'+\-\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\-]*\.)+[A-Za-z]{2,}$/
-  @html5 ~r/^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/
-  @rfc5322 ~r/^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
-  @unicode ~r/^[^\s@"]{1,64}@[^\s@]{1,255}$/u
+  def validate_regex(%{regex: nil}, _), do: :ok
 
-  def validate_email(value, ruleset) do
-    regex =
-      case ruleset do
-        :gmail -> @gmail
-        :html5 -> @html5
-        :rfc5322 -> @rfc5322
-        :unicode -> @unicode
-      end
-
-    case Regex.match?(regex, value) do
+  def validate_regex(%{regex: %Zot.Parameterized{} = regex}, value) do
+    case Regex.match?(regex.value, value) do
       true -> :ok
-      false -> {:error, [issue("is not a valid email address")]}
+      false -> {:error, [issue(regex.params.error, value: regex.value)]}
     end
   end
 
-  @doc ~S"""
-  Validates a number against given constraints.
-  """
-  def validate_number(value, [_ | _] = constraints), do: validate(value, constraints)
-
-  @doc ~S"""
-  Validates that the given raw value is of the expected type.
-  """
-  @doc since: "0.1.0"
-  def validate_type([], is: "list"), do: :ok
-  def validate_type([], is: "keyword"), do: :ok
-
-  def validate_type(value, is: expected) when is_binary(expected) do
-    actual = typeof(value)
-
-    vars = [
-      expected: {:unquoted, expected},
-      actual: {:unquoted, actual}
-    ]
-
-    if actual == expected,
-      do: :ok,
-      else: {:error, [issue("expected type %{expected}, got %{actual}", vars)]}
-  end
-
-  def validate_type(value, in: [_ | _] = expected) do
-    if Enum.any?(expected, &(validate_type(value, is: &1) == :ok)) do
-      :ok
-    else
-      variables = [
-        expected: {:disjunction, expected, []},
-        actual: {:unquoted, typeof(value)}
-      ]
-
-      {:error, [issue("expected type to be one of %{expected}, got %{actual}", variables)]}
+  def validate_type(value, is: expected) do
+    case typeof(value, expected) do
+      ^expected -> :ok
+      actual -> {:error, [issue("expected type %{expected}, got %{actual}", expected: expected, actual: actual)]}
     end
   end
 
@@ -89,51 +46,25 @@ defmodule Zot.Commons do
   #   PRIVATE
   #
 
-  defp validate(_, []), do: :ok
-  defp validate(value, [{_, {nil, _}} | rest]), do: validate(value, rest)
+  defp typeof(value, hint)
+  defp typeof(nil, _), do: "nil"
+  defp typeof(value, _) when is_boolean(value), do: "boolean"
+  defp typeof(value, _) when is_atom(value), do: "atom"
+  defp typeof(value, _) when is_binary(value), do: "string"
+  defp typeof(value, _) when is_bitstring(value), do: "bitstring"
+  defp typeof(value, _) when is_float(value), do: "float"
+  defp typeof(value, _) when is_integer(value), do: "integer"
+  defp typeof(value, "keyword") when is_list(value), do: "keyword"
+  defp typeof(value, _) when is_list(value), do: "list"
+  defp typeof(%mod{}, _), do: name(mod)
+  defp typeof(%{__struct__: mod}, _), do: name(mod)
+  defp typeof(value, _) when is_map(value), do: "map"
+  defp typeof(value, _) when is_tuple(value), do: "tuple"
+  defp typeof(value, _) when is_function(value), do: "function"
+  defp typeof(value, _) when is_pid(value), do: "pid"
+  defp typeof(value, _) when is_port(value), do: "port"
+  defp typeof(value, _) when is_reference(value), do: "reference"
+  defp typeof(value, _), do: raise(ArgumentError, "Unabled to determine type of value #{inspect(value)}")
 
-  defp validate(actual, [{:is, {n, opts}} | rest]) do
-    expected = resolve(n)
-
-    case eq(actual, expected) do
-      true -> validate(actual, rest)
-      false -> {:error, [issue(opts.error, actual: actual, expected: expected)]}
-    end
-  end
-
-  defp validate(actual, [{:gte, {n, opts}} | rest]) do
-    expected = resolve(n)
-
-    case gte(actual, expected) do
-      true -> validate(actual, rest)
-      false -> {:error, [issue(opts.error, actual: actual, expected: expected)]}
-    end
-  end
-
-  defp validate(actual, [{:lte, {n, opts}} | rest]) do
-    expected = resolve(n)
-
-    case lte(actual, expected) do
-      true -> validate(actual, rest)
-      false -> {:error, [issue(opts.error, actual: actual, expected: expected)]}
-    end
-  end
-
-  defp eq(a, b) when is_number(a) and is_number(b), do: (a * 1.0) == (b * 1.0)
-  defp eq(%Date{} = a, %Date{} = b), do: Date.compare(a, b) == :eq
-  defp eq(%DateTime{} = a, %DateTime{} = b), do: DateTime.compare(a, b) == :eq
-  defp eq(%Decimal{} = a, %Decimal{} = b), do: Decimal.equal?(a, b)
-  defp eq(%Time{} = a, %Time{} = b), do: Time.compare(a, b) == :eq
-
-  defp gte(a, b) when is_number(a) and is_number(b), do: (a * 1.0) >= (b * 1.0)
-  defp gte(%Date{} = a, %Date{} = b), do: Date.compare(a, b) in [:gt, :eq]
-  defp gte(%DateTime{} = a, %DateTime{} = b), do: DateTime.compare(a, b) in [:gt, :eq]
-  defp gte(%Decimal{} = a, %Decimal{} = b), do: Decimal.compare(a, b) in [:gt, :eq]
-  defp gte(%Time{} = a, %Time{} = b), do: Time.compare(a, b) in [:gt, :eq]
-
-  defp lte(a, b) when is_number(a) and is_number(b), do: (a * 1.0) <= (b * 1.0)
-  defp lte(%Date{} = a, %Date{} = b), do: Date.compare(a, b) in [:lt, :eq]
-  defp lte(%DateTime{} = a, %DateTime{} = b), do: DateTime.compare(a, b) in [:lt, :eq]
-  defp lte(%Decimal{} = a, %Decimal{} = b), do: Decimal.compare(a, b) in [:lt, :eq]
-  defp lte(%Time{} = a, %Time{} = b), do: Time.compare(a, b) in [:lt, :eq]
+  defp name(mod) when is_atom(mod), do: String.replace(to_string(mod), ~r/^Elixir\./, "")
 end

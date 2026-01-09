@@ -1,21 +1,39 @@
 defprotocol Zot.Type do
   @moduledoc ~S"""
-  A protocol for defining types in Zot.
+  Protocol for defining Zot types.
   """
-  @moduledoc since: "0.1.0"
+
+  @typedoc ~S"""
+  Raw input value.
+  """
+  @type input :: term
+
+  @typedoc ~S"""
+  Parsed and validated value.
+  """
+  @type output :: term
+
+  @typedoc ~S"""
+  The portion of an invalid input that was successfully parsed and
+  validated.
+  """
+  @type partial :: term
 
   @doc ~S"""
+  Parses a value according to the given type.
   """
-  @doc since: "0.1.0"
-  @spec parse(type, value, opts) ::
-          {:ok, parsed_value}
+  @spec parse(t, input, [option]) ::
+          {:ok, output}
           | {:error, [Zot.Issue.t(), ...]}
-          | {:error, [Zot.Issue.t(), ...], partial_value}
-        when type: t,
-             value: term,
-             opts: keyword,
-             parsed_value: term,
-             partial_value: term
+          | {:error, [Zot.Issue.t(), ...], partial}
+        when option: {:coerce, boolean | :unsafe} | {atom, term}
 
   def parse(type, value, opts \\ [])
+
+  @doc ~S"""
+  Converts the type into a JSON Schema.
+  """
+  @spec json_schema(t) :: map
+
+  def json_schema(type)
 end

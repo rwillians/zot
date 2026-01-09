@@ -1,52 +1,52 @@
 defmodule Zot.Template do
   @moduledoc ~S"""
-  Starting point for building Zot types.
+  Utility module for defining Zot types.
   """
-  @moduledoc since: "0.1.0"
-
-  import Zot.Helpers, only: [exclude: 2, name: 1, parameterized: 1, union: 1]
 
   @doc ~S"""
   """
   defmacro __using__(_) do
     quote do
-      import unquote(__MODULE__)
-      import Zot.Helpers, except: [deunion: 1, exclude: 2, name: 1, parameterized: 1, union: 1]
-      import Zot.Parameterized, only: [parameterized: 3]
+      import Kernel, except: [min: 2, max: 2]
+      import Zot.Parameterized, only: [p: 3]
 
-      @new true
+      import unquote(__MODULE__)
     end
   end
 
+  # # pattern matches a parameterized type, binding the inner type to
+  # # a variable
+  # defmacrop parameterized(inner_type) do
+  #   quote do
+  #     {{:., _, [{:__aliases__, _, [:Zot, :Parameterized]}, :t]}, _, [unquote(inner_type)]}
+  #   end
+  # end
+
+  # defp deunion({:|, _, [left, right]}), do: deunion(left) ++ deunion(right)
+  # defp deunion(other), do: [other]
+
   @doc ~S"""
-  Defines the type's modifiers.
+  Macro for defining a Zot type.
   """
   defmacro deftype(ast) do
-    caller = __CALLER__
-    builder = builder(ast, caller)
+    shared_fields = [required: true, default: nil, effects: [], description: nil, example: nil, private: %{}]
+    struct_fields = Macro.escape(Keyword.keys(ast) ++ shared_fields ++ [__zot_type__: true])
+    defaults = Enum.map(ast, fn {field, opts} -> {field, Keyword.get(opts, :default)} end)
 
-    fields =
-      Keyword.keys(ast) ++
-        [
-          __private__: quote(do: %{}),
-          __effects__: quote(do: [])
-        ]
-
-    types = [
-      {:__private__, quote(do: map)},
-      {:__effects__, quote(do: [Zot.effect()])}
-      | Macro.prewalk(ast, &extract_type/1)
-    ]
+    reducer_fn =
+      {:fn, [],
+       ast
+       |> Enum.sort_by(&elem(&1, 0))
+       |> Enum.flat_map(&reducer_fn_modifier_clauses/1)
+       |> Enum.concat([reducer_fn_raise_clause()])}
 
     quote do
-      @typedoc ~S"""
-      """
-      @type t :: %__MODULE__{unquote_splicing(types)}
+      defstruct unquote(struct_fields)
 
-      defstruct unquote(fields)
-
-      if @new == true do
-        unquote(builder)
+      def new(opts \\ []) do
+        unquote(defaults)
+        |> Keyword.merge(opts)
+        |> Enum.reduce(%__MODULE__{}, unquote(reducer_fn))
       end
     end
   end
@@ -54,81 +54,6 @@ defmodule Zot.Template do
   #
   #   PRIVATE
   #
-
-  defp extract_type({field, {_, t: type}}), do: {field, normalize_parameterized(type)}
-  defp extract_type(other), do: other
-
-  defp normalize_parameterized({:p, _, [inner_type]}), do: {{:., [], [{:__aliases__, [alias: false], [:Zot, :Parameterized]}, :t]}, [], [inner_type]}
-  defp normalize_parameterized(other), do: other
-
-  defp builder([], _) do
-    quote do
-      @doc ~s"""
-      Builds a new `#{unquote(name(__MODULE__))}`.
-      """
-      @spec new() :: t
-
-      def new, do: %__MODULE__{}
-    end
-  end
-
-  defp builder(ast, caller) do
-    defaults = Macro.prewalk(ast, &extract_default/1)
-
-    types =
-      ast
-      |> Macro.prewalk(&extract_type/1)
-      |> Enum.sort_by(&elem(&1, 0))
-
-    reducer_fn =
-      {:fn, [],
-       types
-       |> Enum.flat_map(&reducer_fn_modifier_clauses/1)
-       |> Enum.concat([reducer_fn_raise_clause()])}
-
-    options =
-      types
-      |> Enum.flat_map(&builder_option/1)
-      |> union()
-
-    modifier_specs = Enum.map(types, &modifier_spec/1)
-
-    quote do
-      @doc ~s"""
-      Builds a new `#{unquote(name(caller.module))}` from the given options.
-      """
-      @spec new([option]) :: t
-            when option: unquote(options)
-
-      def new(opts \\ [])
-
-      def new(opts) when is_list(opts) do
-        unquote(defaults)
-        |> Keyword.merge(Enum.reject(opts, &is_nil(elem(&1, 1))))
-        |> Enum.reduce(%__MODULE__{}, unquote(reducer_fn))
-      end
-
-      unquote({:__block__, [], modifier_specs})
-    end
-  end
-
-  defp extract_default({field, {default, t: _}}), do: {field, default}
-  defp extract_default(other), do: other
-
-  defp reducer_fn_modifier_clauses({modifier, parameterized(_)}) do
-    [
-      {:->, [],
-       [
-         [{modifier, {{:value, [], __MODULE__}, {:opts, [], __MODULE__}}}, {:type, [], __MODULE__}],
-         {modifier, [], [{:type, [], __MODULE__}, {:value, [], __MODULE__}, {:opts, [], __MODULE__}]}
-       ]},
-      {:->, [],
-       [
-         [{modifier, {:value, [], __MODULE__}}, {:type, [], __MODULE__}],
-         {modifier, [], [{:type, [], __MODULE__}, {:value, [], __MODULE__}]}
-       ]}
-    ]
-  end
 
   defp reducer_fn_modifier_clauses({modifier, _}) do
     [
@@ -155,56 +80,4 @@ defmodule Zot.Template do
   end
 
   defp interpolate(var), do: {:"::", [], [{{:., [], [Kernel, :to_string]}, [from_interpolation: true], [var]}, {:binary, [], __MODULE__}]}
-
-  defp builder_option({field, parameterized(inner_type)}) do
-    inner_type = exclude(inner_type, nil)
-
-    [
-      quote(do: {unquote(field), unquote(inner_type)}),
-      quote(do: {unquote(field), {unquote(inner_type), error: String.t()}})
-    ]
-  end
-
-  defp builder_option({field, type}) do
-    type = exclude(type, nil)
-
-    [
-      quote(do: {unquote(field), unquote(type)})
-    ]
-  end
-
-  defp modifier_spec({modifier, parameterized(inner_type)}) do
-    signature = [
-      {modifier, [], [{:type, [], __MODULE__}, {:value, [], __MODULE__}, [{:option, [], __MODULE__}]]},
-      {:type, [], __MODULE__}
-    ]
-
-    when_fields = [
-      type: quote(do: t),
-      value: inner_type,
-      option: quote(do: {:error, String.t()})
-    ]
-
-    {:@, [context: __MODULE__, imports: [{1, Kernel}]],
-     [
-       {:spec, [context: __MODULE__], [{:when, [], [{:"::", [], signature}, when_fields]}]}
-     ]}
-  end
-
-  defp modifier_spec({modifier, type}) do
-    signature = [
-      {modifier, [], [{:type, [], __MODULE__}, {:value, [], __MODULE__}]},
-      {:type, [], __MODULE__}
-    ]
-
-    when_fields = [
-      type: quote(do: t),
-      value: type
-    ]
-
-    {:@, [context: __MODULE__, imports: [{1, Kernel}]],
-     [
-       {:spec, [context: __MODULE__], [{:when, [], [{:"::", [], signature}, when_fields]}]}
-     ]}
-  end
 end

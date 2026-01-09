@@ -3,5 +3,7 @@ defmodule ZotTest do
 
   alias Zot, as: Z
 
+  def unwrap_issue_message({:error, [issue]}), do: Exception.message(issue)
+
   doctest Zot
 end

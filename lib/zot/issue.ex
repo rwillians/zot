@@ -1,128 +1,109 @@
 defmodule Zot.Issue do
   @moduledoc ~S"""
+  Represents a single issue found when parsing / validating a value
+  against a type.
   """
-  @moduledoc since: "0.1.0"
 
-  alias __MODULE__
-
-  @typedoc ~S"""
-  """
-  @typedoc since: "0.1.0"
-  @type segment :: atom | String.t() | integer
+  alias __MODULE__, as: Issue
 
   @typedoc ~S"""
+  Represents a segment in a path.
   """
-  @typedoc since: "0.1.0"
+  @type segment :: String.t() | atom | non_neg_integer
+
+  @typedoc ~S"""
+  Zot's issue struct.
+  """
   @type t :: %Issue{
           path: [segment],
           template: String.t(),
-          variables: keyword
+          params: keyword()
         }
 
   defexception path: [],
                template: nil,
-               variables: []
+               params: []
 
-  @doc ~S"""
-  Renders the issue's error message.
-  """
-  @doc since: "0.1.0"
   @impl Exception
   def message(%Issue{} = issue) do
-    Enum.reduce(issue.variables, issue.template, fn {key, value}, acc ->
-      String.replace(acc, "%{#{key}}", format(value))
+    Enum.reduce(issue.params, issue.template, fn {key, value}, acc ->
+      String.replace(acc, "%{#{key}}", render(value))
     end)
   end
 
   @doc ~S"""
   Creates a new issue.
   """
-  @doc since: "0.1.0"
-  @spec issue(message) :: t
-        when message: String.t()
+  @spec issue(template) :: t when template: String.t()
+  @spec issue(template, params) :: t when template: String.t(), params: keyword
+  @spec issue(path, template) :: t when path: [segment], template: String.t()
+  @spec issue(path, template, params) :: t when path: [segment], template: String.t(), params: keyword
 
-  def issue(message)
-      when is_binary(message),
-      do: %Issue{template: message}
+  def issue(template)
+      when is_binary(template),
+      do: %Issue{template: template}
 
-  @doc ~S"""
-  Creates a new issue.
-  """
-  @doc since: "0.1.0"
-  @spec issue(template, variables) :: t
-        when template: String.t(),
-             variables: keyword
-  @spec issue(path, message) :: t
-        when path: [segment],
-             message: String.t()
+  def issue(template, params)
+      when is_binary(template) and is_list(params),
+      do: %Issue{template: template, params: params}
 
-  def issue(template, variables)
-      when is_binary(template) and is_list(variables),
-      do: %Issue{template: template, variables: variables}
+  def issue(path, template)
+      when is_list(path) and is_binary(template),
+      do: %Issue{path: path, template: template}
 
-  def issue(path, message)
-      when is_list(path) and is_binary(message),
-      do: %Issue{path: path, template: message}
+  def issue(path, template, params)
+      when is_list(path) and is_binary(template) and is_list(params),
+      do: %Issue{path: path, template: template, params: params}
 
   @doc ~S"""
-  Creates a new issue.
+  Prepends segements to the given issue's path.
   """
-  @doc since: "0.1.0"
-  @spec issue(path, template, variables) :: t
-        when path: [segment],
-             template: String.t(),
-             variables: keyword
-
-  def issue(path, template, variables)
-      when is_list(path) and is_binary(template) and is_list(variables),
-      do: %Issue{path: path, template: template, variables: variables}
-
-  @doc ~S"""
-  Prepends segments to the issue's path.
-  """
-  @doc since: "0.1.0"
-  @spec prepend_path(issue, segments) :: issue
-        when issue: t,
-             segments: [term]
+  @spec prepend_path(t, [segment]) :: t
+  @spec prepend_path([t, ...], [segment]) :: [t, ...]
 
   def prepend_path(%Issue{} = issue, []), do: issue
-  def prepend_path(%Issue{} = issue, [_ | _] = segments), do: %{issue | path: segments ++ issue.path}
+  def prepend_path(%Issue{path: path} = issue, [_ | _] = segments), do: %{issue | path: segments ++ path}
+  def prepend_path([_ | _] = issues, segments), do: Enum.map(issues, &prepend_path(&1, segments))
+
+  @doc ~S"""
+  Renders a list of issues into a pretty-printed string.
+  """
+  @spec prettyprint([t, ...]) :: String.t()
+
+  def prettyprint([_ | _] = issues) do
+    summary =
+      issues
+      |> summarize()
+      |> Enum.map(fn {path, messages} -> {dot_notated(path), Enum.join(messages, ", ")} end)
+      |> Enum.map(fn {path, message} -> "  * Field `#{highlighted(path)}` #{message};" end)
+      |> Enum.join("\n")
+
+    """
+    One or more fields failed validation:
+    #{summary}
+    """
+  end
+
+  @doc ~S"""
+  Summarizes a list of issues into a map of paths to messages.
+  """
+  @spec summarize([t, ...]) :: %{optional([segment]) => [String.t(), ...]}
+
+  def summarize([_ | _] = issues), do: Enum.group_by(issues, & &1.path, &message/1)
 
   #
   #   PRIVATE
   #
 
-  defp human_readable_list([_, _ | _] = list, which, opts)
-      when which in [:conjunction, :disjunction] do
-    separator =
-      case which do
-        :conjunction -> "and"
-        :disjunction -> "or"
-      end
+  defp render(nil), do: "nil"
+  defp render(true), do: "true"
+  defp render(false), do: "false"
+  defp render(value) when is_binary(value), do: inspect(value)
+  defp render(value) when is_atom(value), do: inspect(value)
+  defp render(%Regex{} = value), do: "/#{value.source}/"
+  defp render(value), do: to_string(value)
 
-    [last, second_last | rest] =
-      list
-      |> Enum.map(&to_string/1)
-      |> Enum.map(&maybe_quote(&1, opts[:quote]))
-      |> :lists.reverse()
+  defp dot_notated(segments), do: segments |> Enum.map(&to_string/1) |> Enum.join(".")
 
-    rest
-    |> :lists.reverse()
-    |> Enum.concat(["#{second_last} #{separator} #{last}"])
-    |> Enum.join(", ")
-  end
-
-  defp format(%Date{} = value), do: Date.to_iso8601(value)
-  defp format(%DateTime{} = value), do: DateTime.to_iso8601(value)
-  defp format(%Decimal{} = value), do: Decimal.to_string(value)
-  defp format(%Regex{} = value), do: "/#{value.source}/"
-  defp format(value) when is_binary(value), do: "'#{value}'"
-  defp format(value) when is_boolean(value), do: to_string(value)
-  defp format({:unquoted, value}) when is_binary(value), do: value
-  defp format({which, value, opts}) when which in [:conjunction, :disjunction], do: human_readable_list(value, which, opts)
-  defp format(value), do: inspect(value)
-
-  defp maybe_quote(value, nil), do: value
-  defp maybe_quote(value, true), do: "'#{value}'"
-  defp maybe_quote(value, char) when is_binary(char), do: "#{char}#{value}#{char}"
+  defp highlighted(str), do: IO.ANSI.red() <> IO.ANSI.underline() <> str <> IO.ANSI.reset()
 end

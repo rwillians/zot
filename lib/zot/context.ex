@@ -1,158 +1,158 @@
 defmodule Zot.Context do
   @moduledoc ~S"""
-  Contextual information about a value subject to parsing / validation.
+  Context management for parsing / validating values.
   """
-  @moduledoc since: "0.1.0"
 
-  import Zot.Issue, only: [prepend_path: 2]
+  import Zot.Issue, only: [issue: 2, prepend_path: 2]
+  import Zot.Utils, only: [is_mfa: 1, resolve: 1]
 
   alias __MODULE__
-  alias Zot.Issue
 
-  @typedoc false
+  @typedoc ~S"""
+  Represents a segment in a path.
+  """
+  @type segment :: String.t() | atom | non_neg_integer
+
+  @typedoc ~S"""
+  Zot's context struct encapsulates all that is needed to parse and
+  validate a value.
+  """
   @type t :: %Context{
-          issues: [Issue.t()],
+          type: struct,
           input: term,
-          parse_score: non_neg_integer,
-          parsed: term,
-          type: Zot.Type.t(),
+          output: term,
+          path: [segment],
+          issues: [Zot.Issue.t()],
+          score: integer,
+          opts: keyword,
           valid?: boolean
         }
 
-  defstruct issues: [],
-            input: nil,
-            parse_score: 0,
-            parsed: nil,
-            path: [],
-            type: nil,
-            valid?: true
+  defstruct [:type, :input, :output, path: [], issues: [], score: 0, opts: [], valid?: true]
 
   @doc ~S"""
   Creates a new context.
   """
-  @doc since: "0.1.0"
-  def new(%_{} = type, path \\ [], input)
-      when is_list(path),
-      do: %Context{path: path, input: input, type: type}
+  @spec new(type, input, opts) :: t
+        when type: struct,
+             input: term,
+             opts: keyword
+
+  def new(%_{} = type, input, opts \\ [])
+      when is_list(opts),
+      do: %Context{type: type, opts: opts, input: input, output: input}
 
   @doc ~S"""
-  Adds an issue to the context.
+  Puts the given path into the context.
   """
-  @doc since: "0.1.0"
-  @spec add_issue(ctx :: t, issue :: Zot.Issue.t()) :: t
-  @spec add_issue(ctx :: t, message :: String.t()) :: t
-  @spec add_issue(ctx :: t, template :: String.t(), variables :: keyword) :: t
-
-  def add_issue(%Context{} = ctx, %Issue{} = issue),
-    do: %{ctx | issues: [issue | ctx.issues], valid?: false}
-
-  def add_issue(%Context{} = ctx, message)
-      when is_binary(message),
-      do: add_issue(ctx, %Issue{template: message})
-
-  def add_issue(%Context{} = ctx, template, [{_, _} | _] = variables)
-      when is_binary(template),
-      do: add_issue(ctx, %Issue{template: template, variables: variables})
-
-  @doc ~S"""
-  Gets the issues from the context, prepending the context's path to
-  each issue.
-  """
-  @doc since: "0.1.0"
-  @spec get_issues(ctx :: t) :: [Zot.Issue.t()]
-
-  def get_issues(%Context{} = ctx), do: Enum.map(ctx.issues, &prepend_path(&1, ctx.path))
-
-  @doc ~S"""
-  Gets the parsed value from the context.
-  """
-  @doc since: "0.1.0"
-  @spec get_parsed(ctx :: t) :: term
-
-  def get_parsed(%Context{} = ctx), do: ctx.parsed
-
-  @doc ~S"""
-  Sets the path of the context.
-  """
-  @doc since: "0.1.0"
-  @spec put_path(ctx :: t, path :: [term]) :: t
+  @spec put_path(t, [segment]) :: t
 
   def put_path(%Context{} = ctx, path)
       when is_list(path),
       do: %{ctx | path: path}
 
   @doc ~S"""
-  Parses the given context.
+  Appends new issues to the context, what causes the context to be
+  marked as invalid.
   """
-  @doc since: "0.1.0"
-  @spec parse(ctx :: t, opts :: keyword) :: t
+  @spec append_issues(t, [Zot.Issue.t()]) :: t
 
-  def parse(%Context{} = ctx, opts \\ []) do
-    with %Context{valid?: true} = ctx <- parse_type(ctx, opts),
-         %Context{valid?: true} = ctx <- apply_effects(ctx),
-         do: ctx
-  end
+  def append_issues(%Context{} = ctx, []), do: ctx
+  def append_issues(%Context{issues: issues} = ctx, [_ | _] = new_issues), do: %{ctx | issues: issues ++ new_issues, valid?: false}
 
   @doc ~S"""
-  Checks whether the context is valid.
+  Increments the context's score by the given amount.
   """
-  @doc since: "0.1.0"
-  @spec valid?(ctx :: t) :: boolean
+  @spec inc_score(t, integer) :: t
 
-  def valid?(%Context{} = ctx), do: ctx.valid?
+  def inc_score(ctx, inc \\ 1)
+  def inc_score(%Context{} = ctx, 0), do: ctx
+  def inc_score(%Context{score: score} = ctx, inc) when is_integer(inc), do: %{ctx | score: score + inc}
+
+  @doc ~S"""
+  Unwraps the Context into an :ok|:error tuple.
+  """
+  @spec unwrap(t) :: {:ok, term} | {:error, [Zot.Issue.t(), ...]}
+
+  def unwrap(%Context{valid?: true} = ctx), do: {:ok, ctx.output}
+  def unwrap(%Context{valid?: false} = ctx), do: {:error, ctx.issues}
+
+  @doc ~S"""
+  Parses the given context.
+  """
+  @spec parse(t) :: t
+
+  def parse(%Context{} = ctx) do
+    with {:ok, ctx} <- resolve_default(ctx),
+         {:ok, ctx} <- validate_required(ctx),
+         {:ok, ctx} <- parse_type(ctx),
+         {:ok, ctx} <- apply_effects(ctx) do
+      ctx
+    else
+      {:error, ctx} -> ctx
+      {:halt, ctx} -> ctx
+    end
+  end
 
   #
   #   PRIVATE
   #
 
-  defp parse_type(%Context{} = ctx, opts) do
-    case Zot.Type.parse(ctx.type, ctx.input, opts) do
-      {:ok, value} -> ctx |> put_parsed(value)
-      {:error, issues} -> ctx |> add_issues(issues)
-      #                ↓ the type has explicitly provided a partial success
-      {:error, issues, parsed} -> ctx |> add_issues(issues) |> put_parsed(parsed)
+  defp resolve_default(%Context{type: %_{default: nil}, output: nil} = ctx), do: {:ok, ctx}
+  defp resolve_default(%Context{type: %_{default: default}, output: nil} = ctx), do: {:ok, %{ctx | output: resolve(default)}}
+  defp resolve_default(%Context{} = ctx), do: {:ok, ctx}
+
+  defp validate_required(%Context{type: %_{required: true}, output: nil} = ctx), do: {:error, append_issues(ctx, [issue(ctx.path, "is required")])}
+  defp validate_required(%Context{type: %_{required: false}, output: nil} = ctx), do: {:halt, ctx}
+  defp validate_required(%Context{} = ctx), do: {:ok, ctx}
+
+  defp parse_type(%Context{} = ctx) do
+    case Zot.Type.parse(ctx.type, ctx.output, ctx.opts) do
+      {:ok, output} -> {:ok, %{ctx | output: output}}
+      {:error, issues} -> {:error, append_issues(ctx, prepend_path(issues, ctx.path))}
+      {:error, issues, partial} -> {:error, append_issues(%{ctx | output: partial, score: score(partial)}, prepend_path(issues, ctx.path))}
     end
   end
 
-  defp apply_effects(%Context{} = ctx) do
-    Enum.reduce_while(ctx.type.__effects__, ctx, fn effect, acc ->
-      case apply_effect(acc, effect) do
-        {:ok, acc} -> {:cont, acc}
-        {:error, acc} -> {:halt, acc}
+  defp score(nil), do: 0
+  defp score(value) when is_struct(value), do: score(Map.from_struct(value))
+  defp score(value) when is_map(value), do: 1 + score(Map.values(value))
+  defp score([]), do: 1
+  defp score([head | tail]), do: score(head) + score(tail)
+  defp score({_, value}), do: score(value)
+  #    ↑ when iterating over a keyword's k-v tuples
+  defp score(_), do: 1
+
+  defp apply_effects(%Context{type: %_{effects: []}} = ctx), do: {:ok, ctx}
+
+  defp apply_effects(%Context{type: %_{effects: effects}} = ctx) do
+    Enum.reduce_while(effects, {:ok, ctx}, fn effect, {:ok, acc} ->
+      case apply_effect(effect, acc) do
+        {:ok, new_ctx} -> {:cont, {:ok, new_ctx}}
+        {:error, new_ctx} -> {:halt, {:error, new_ctx}}
       end
     end)
   end
 
-  defp apply_effect(%Context{} = ctx, {:refine, fun, opts}) do
-    case call(fun, ctx.parsed) do
+  defp apply_effect({:transform, fun}, ctx), do: {:ok, %{ctx | output: invoke_transform(fun, ctx)}}
+
+  defp apply_effect({:refine, fun}, ctx) do
+    case invoke_refine(fun, ctx) do
       true -> {:ok, ctx}
+      false -> {:error, append_issues(ctx, [issue(ctx.path, "is invalid")])}
+      %Context{valid?: true} = new_ctx -> {:ok, new_ctx}
+      %Context{valid?: false} = new_ctx -> {:error, new_ctx}
       :ok -> {:ok, ctx}
-      false -> {:error, add_issue(ctx, opts[:error] || "is invalid")}
-      {:error, <<error::binary>>} -> {:error, add_issue(ctx, error)}
+      :error -> {:error, append_issues(ctx, [issue(ctx.path, "is invalid")])}
+      {:error, <<_, _::binary>> = reason} -> {:error, append_issues(ctx, [issue(ctx.path, reason)])}
+      {:error, %_{} = error} -> {:error, append_issues(ctx, [issue(ctx.path, Exception.message(error))])}
     end
   end
 
-  defp apply_effect(%Context{} = ctx, {:transform, fun}) do
-    case call(fun, ctx.parsed) do
-      {:ok, value} -> {:ok, put_parsed(ctx, value)}
-      {:error, <<error::binary>>} -> {:error, add_issue(ctx, error)}
-      {:error, %_{__exception__: _} = error} -> {:error, add_issue(ctx, Exception.message(error))}
-      value -> {:ok, put_parsed(ctx, value)}
-    end
-  end
+  defp invoke_transform({m, f, a} = mfa, ctx) when is_mfa(mfa), do: apply(m, f, [ctx.output | a])
+  defp invoke_transform(fun, ctx) when is_function(fun, 1), do: fun.(ctx.output)
 
-  defp call({m, f, a}, value), do: apply(m, f, [value | a])
-  defp call(fun, value), do: fun.(value)
-
-  defp put_parsed(ctx, parsed), do: %{ctx | parsed: parsed, parse_score: score(parsed)}
-
-  defp add_issues(ctx, []), do: ctx
-  defp add_issues(ctx, [_ | _] = issues), do: Enum.reduce(issues, ctx, &add_issue(&2, &1))
-
-  #          ↓ each kv item in a keyword or map
-  defp score({_, value}), do: score(value)
-  defp score(value) when is_list(value) or is_non_struct_map(value), do: Enum.sum(Enum.map(value, &score/1)) + 1
-  defp score(%_{} = value), do: score(Map.from_struct(value)) + 1
-  defp score(nil), do: 0
-  defp score(_), do: 1
+  defp invoke_refine({m, f, a} = mfa, ctx) when is_mfa(mfa), do: apply(m, f, [ctx | a])
+  defp invoke_refine(fun, ctx) when is_function(fun, 1), do: fun.(ctx.output)
+  defp invoke_refine(fun, ctx) when is_function(fun, 2), do: fun.(ctx.output, ctx)
 end
