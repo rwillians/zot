@@ -11,6 +11,7 @@ defmodule Zot.Commons do
     quote do
       import unquote(__MODULE__)
       import Zot.Issue, only: [issue: 1, issue: 2]
+      import Zot.Utils
     end
   end
 

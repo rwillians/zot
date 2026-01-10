@@ -9,6 +9,7 @@ defmodule Zot.Template do
     quote do
       import Kernel, except: [min: 2, max: 2]
       import Zot.Parameterized, only: [p: 3]
+      import Zot.Utils
 
       import unquote(__MODULE__)
     end

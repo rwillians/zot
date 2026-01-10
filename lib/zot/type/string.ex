@@ -118,7 +118,7 @@ defimpl Zot.Type, for: Zot.Type.String do
   defp validate_contains(%{contains: contains}, value) do
     case String.contains?(value, contains.value) do
       true -> :ok
-      false -> {:error, [issue(contains.params.error, value: contains.value)]}
+      false -> {:error, [issue(contains.params.error, value: ~s("#{contains.value}"))]}
     end
   end
 
@@ -126,7 +126,7 @@ defimpl Zot.Type, for: Zot.Type.String do
   defp validate_ends_with(%{ends_with: ends_with}, value) do
     case String.ends_with?(value, ends_with.value) do
       true -> :ok
-      false -> {:error, [issue(ends_with.params.error, value: ends_with.value)]}
+      false -> {:error, [issue(ends_with.params.error, value: ~s("#{ends_with.value}"))]}
     end
   end
 
@@ -158,7 +158,7 @@ defimpl Zot.Type, for: Zot.Type.String do
   defp validate_starts_with(%{starts_with: starts_with}, value) do
     case String.starts_with?(value, starts_with.value) do
       true -> :ok
-      false -> {:error, [issue(starts_with.params.error, value: starts_with.value)]}
+      false -> {:error, [issue(starts_with.params.error, value: ~s("#{starts_with.value}"))]}
     end
   end
 end

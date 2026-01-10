@@ -34,22 +34,6 @@ defmodule Zot do
 
   @doc ~S"""
   Converts the given type into a JSON Schema.
-
-  ## Examples
-
-      iex> Z.string(starts_with: "u_", length: 28)
-      iex> |> Z.description("A user id.")
-      iex> |> Z.example("u_12345678901234567890123456")
-      iex> |> Z.json_schema()
-      %{
-        "type" => "string",
-        "description" => "A user id.",
-        "example" => "u_12345678901234567890123456",
-        "nullable" => false,
-        "minLength" => 28,
-        "maxLength" => 28
-      }
-
   """
   @spec json_schema(type) :: map
         when type: Zot.Type.t()
@@ -63,6 +47,57 @@ defmodule Zot do
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
   #                              TYPES                              #
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+  @doc ~S"""
+  Creates a date-time type.
+
+  ## Examples
+
+      iex> Z.date_time()
+      iex> |> Z.parse(~U[2024-01-01T12:34:56Z])
+      {:ok, ~U[2024-01-01T12:34:56Z]}
+
+      iex> Z.date_time()
+      iex> |> Z.parse("foo")
+      iex> |> unwrap_issue_message()
+      "expected type DateTime, got string"
+
+  You can enforce that the date-time is after a given date-time:
+
+      iex> Z.date_time(min: ~U[2024-01-01 00:00:00Z])
+      iex> |> Z.parse(~U[2023-12-31 23:59:59Z])
+      iex> |> unwrap_issue_message()
+      "must be after 2024-01-01T00:00:00Z"
+
+  You can enforce that the date-time is before a given date-time:
+
+      iex> Z.date_time(max: ~U[2023-12-31 23:59:59Z])
+      iex> |> Z.parse(~U[2024-01-01 00:00:00Z])
+      iex> |> unwrap_issue_message()
+      "must be before 2023-12-31T23:59:59Z"
+
+  It supports coercion from ISO8601 strings:
+
+      iex> Z.date_time()
+      iex> |> Z.parse("2024-01-01T12:34:56Z", coerce: true)
+      {:ok, ~U[2024-01-01T12:34:56Z]}
+
+  It can be converted into json schema:
+
+      iex> Z.date_time()
+      iex> |> Z.description("A timestamp.")
+      iex> |> Z.example(~U[2026-01-10T10:23:45.123Z])
+      iex> |> Z.json_schema()
+      %{
+        "type" => "string",
+        "format" => "date-time",
+        "description" => "A timestamp.",
+        "example" => "2026-01-10T10:23:45.123Z",
+        "nullable" => false
+      }
+
+  """
+  defdelegate date_time(opts \\ []), to: Zot.Type.DateTime, as: :new
 
   @doc ~S"""
   Creates a string type.
@@ -176,6 +211,21 @@ defmodule Zot do
       iex> |> Z.parse("   Hello, World!")
       {:ok, "Hello, World!"}
 
+  It can be converted into json schema:
+
+      iex> Z.string(starts_with: "u_", length: 28)
+      iex> |> Z.description("A user id.")
+      iex> |> Z.example("u_12345678901234567890123456")
+      iex> |> Z.json_schema()
+      %{
+        "type" => "string",
+        "description" => "A user id.",
+        "example" => "u_12345678901234567890123456",
+        "nullable" => false,
+        "minLength" => 28,
+        "maxLength" => 28
+      }
+
   """
   defdelegate string(opts \\ []), to: Zot.Type.String, as: :new
 
@@ -217,13 +267,15 @@ defmodule Zot do
   def length(%Zot.Type.String{} = type, length), do: Zot.Type.String.length(type, length)
 
   @doc ~S"""
-  Enforces that the string has a maximum length.
+  Enforces a maximum value for the given type.
   """
+  def max(%Zot.Type.DateTime{} = type, max), do: Zot.Type.DateTime.max(type, max)
   def max(%Zot.Type.String{} = type, max), do: Zot.Type.String.max(type, max)
 
   @doc ~S"""
-  Enforces that the string has a minimum length.
+  Enforces a minimum value for the given type.
   """
+  def min(%Zot.Type.DateTime{} = type, min), do: Zot.Type.DateTime.min(type, min)
   def min(%Zot.Type.String{} = type, min), do: Zot.Type.String.min(type, min)
 
   @doc ~S"""

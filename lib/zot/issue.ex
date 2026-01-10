@@ -98,7 +98,7 @@ defmodule Zot.Issue do
   defp render(nil), do: "nil"
   defp render(true), do: "true"
   defp render(false), do: "false"
-  defp render(value) when is_binary(value), do: inspect(value)
+  defp render(value) when is_binary(value), do: value
   defp render(value) when is_atom(value), do: inspect(value)
   defp render(%Regex{} = value), do: "/#{value.source}/"
   defp render(value), do: to_string(value)
