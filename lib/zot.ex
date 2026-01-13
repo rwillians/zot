@@ -701,6 +701,68 @@ defmodule Zot do
   defdelegate numeric(opts \\ []), to: Zot.Type.Numeric, as: :new
 
   @doc ~S"""
+  Creates a phone number type.
+
+  ## Examples
+
+      iex> Z.phone()
+      iex> |> Z.parse("+5511987654321")
+      {:ok, "+5511987654321"}
+
+      iex> Z.phone()
+      iex> |> Z.parse("5511987654321")
+      {:ok, "5511987654321"}
+
+  You can define the behavior for the leading plus sign, where the
+  options are:
+  - `:always` - if absent, adds it to the output;
+  - `:forbid` - if present, results in an issue;
+  - `:keep` (default) - if present, keeps it; and
+  - `:require` - if absent, results in an issue.
+
+      iex> Z.phone(leading_plus_sign: :always)
+      iex> |> Z.parse("5511987654321")
+      {:ok, "+5511987654321"}
+
+      iex> Z.phone(leading_plus_sign: :forbid)
+      iex> |> Z.parse("+5511987654321")
+      iex> |> unwrap_issue_message()
+      "must not start with a leading plus sign (+)"
+
+      iex> Z.phone(leading_plus_sign: :keep)
+      iex> |> Z.parse("+5511987654321")
+      {:ok, "+5511987654321"}
+
+      iex> Z.phone(leading_plus_sign: :keep)
+      iex> |> Z.parse("5511987654321")
+      {:ok, "5511987654321"}
+
+      iex> Z.phone(leading_plus_sign: :require)
+      iex> |> Z.parse("5511987654321")
+      iex> |> unwrap_issue_message()
+      "must start with a leading plus sign (+)"
+
+  It can be converted into json schema:
+
+      iex> Z.phone(leading_plus_sign: :always)
+      iex> |> Z.describe("A phone number.")
+      iex> |> Z.example("+5511987654321")
+      iex> |> Z.json_schema()
+      %{
+        "description" => "A phone number.",
+        "example" => "+5511987654321",
+        "format" => "phone",
+        "maxLength" => 16,
+        "minLength" => 9,
+        "nullable" => false,
+        "pattern" => "^\\+[0-9]{8,15}$",
+        "type" => "string"
+      }
+
+  """
+  defdelegate phone(opts \\ []), to: Zot.Type.Phone, as: :new
+
+  @doc ~S"""
   Creates a record type where keys are non-empty strings.
 
   ## Examples
