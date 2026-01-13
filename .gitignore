@@ -1,0 +1,15 @@
+/priv/plts/*.plt.hash
+/priv/plts/*.plt
+/.elixir_ls/
+/ignore/
+/_build/
+/cover/
+/deps/
+/tmp/
+/doc/
+*.ez
+.fetch
+play.ex
+.DS_Store
+zot-*.tar
+erl_crash.dump
