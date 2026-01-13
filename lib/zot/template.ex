@@ -15,17 +15,6 @@ defmodule Zot.Template do
     end
   end
 
-  # # pattern matches a parameterized type, binding the inner type to
-  # # a variable
-  # defmacrop parameterized(inner_type) do
-  #   quote do
-  #     {{:., _, [{:__aliases__, _, [:Zot, :Parameterized]}, :t]}, _, [unquote(inner_type)]}
-  #   end
-  # end
-
-  # defp deunion({:|, _, [left, right]}), do: deunion(left) ++ deunion(right)
-  # defp deunion(other), do: [other]
-
   @doc ~S"""
   Macro for defining a Zot type.
   """

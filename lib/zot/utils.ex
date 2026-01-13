@@ -35,7 +35,15 @@ defmodule Zot.Utils do
   """
   defmacro type(var) do
     quote do
-      %unquote(var){__zot_type__: true}
+      %unquote(var){
+        __zot_type__: true,
+        required: _,
+        default: _,
+        effects: _,
+        description: _,
+        example: _,
+        private: %{}
+      }
     end
   end
 
