@@ -8,7 +8,7 @@ defmodule Zot do
   alias Zot.Context
 
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-  #                            CORE API                             #
+  # CORE API                                                        #
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
   @doc ~S"""
@@ -41,7 +41,7 @@ defmodule Zot do
   end
 
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-  #                              TYPES                              #
+  # TYPES                                                           #
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
   @doc ~S"""
@@ -1139,7 +1139,7 @@ defmodule Zot do
   def uuid(version \\ :any), do: Zot.Type.UUID.new(version: version)
 
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-  #                            MODIFIERS                            #
+  # MODIFIERS                                                       #
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
   @doc ~S"""
@@ -1238,6 +1238,57 @@ defmodule Zot do
   def optional(type(_) = type), do: %{type | required: false}
 
   @doc ~S"""
+  Makes all fields optional. After successfully parsed and validate,
+  drops all nil fields from the resulting map.
+
+  ## Examples
+
+      iex> Z.strict_map(%{name: Z.string(), age: Z.int()})
+      iex> |> Z.partial()
+      iex> |> Z.parse(%{name: "Alice"})
+      {:ok, %{name: "Alice"}}
+
+      iex> Z.strict_map(%{name: Z.string(), age: Z.int()})
+      iex> |> Z.partial()
+      iex> |> Z.parse(%{})
+      {:ok, %{}}
+
+  It can be converted into json schema:
+
+      iex> Z.strict_map(%{name: Z.string(), age: Z.int()})
+      iex> |> Z.partial()
+      iex> |> Z.describe("A person's profile.")
+      iex> |> Z.example(%{"name" => "Bob", "age" => 18})
+      iex> |> Z.json_schema()
+      %{
+        "type" => "object",
+        "description" => "A person's profile.",
+        "example" => %{"name" => "Bob", "age" => 18},
+        "properties" => %{
+          "name" => %{
+            "type" => "string",
+            "nullable" => true
+          },
+          "age" => %{
+            "type" => "integer",
+            "nullable" => true
+          }
+        },
+        "required" => [],
+        "additionalProperties" => false
+      }
+
+  """
+  def partial(%Zot.Type.Map{} = type) do
+    shape =
+      type.shape
+      |> Enum.map(fn {key, t} -> {key, optional(t)} end)
+      |> Enum.into(%{})
+
+    transform(%{type | shape: shape}, {__MODULE__, :__drop_nil_fields__, []})
+  end
+
+  @doc ~S"""
   Adds a custom refinement to the given type's effects pipeline, which
   is executed after the type is successfully parsed and validated.
 
@@ -1321,4 +1372,15 @@ defmodule Zot do
   See `uuid/1` for more details.
   """
   defdelegate version(type, value), to: Zot.Type.UUID
+
+  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+  # CALLBACKS                                                       #
+  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+  @doc false
+  def __drop_nil_fields__(map) when is_non_struct_map(map) do
+    map
+    |> Enum.reject(fn {_, value} -> is_nil(value) end)
+    |> Enum.into(%{})
+  end
 end
