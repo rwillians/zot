@@ -103,7 +103,7 @@ defmodule Zot do
   It can be converted into json schema:
 
       iex> Z.boolean()
-      iex> |> Z.description("A boolean flag.")
+      iex> |> Z.describe("A boolean flag.")
       iex> |> Z.example(true)
       iex> |> Z.json_schema()
       %{
@@ -158,7 +158,7 @@ defmodule Zot do
   It can be converted into json schema:
 
       iex> Z.date_time()
-      iex> |> Z.description("A timestamp.")
+      iex> |> Z.describe("A timestamp.")
       iex> |> Z.example(~U[2026-01-10T10:23:45.123Z])
       iex> |> Z.json_schema()
       %{
@@ -216,7 +216,7 @@ defmodule Zot do
   It can be converted into json schema:
 
       iex> Z.decimal(min: 1.00, max: 100.00)
-      iex> |> Z.description("A monetary amount.")
+      iex> |> Z.describe("A monetary amount.")
       iex> |> Z.example(Decimal.new("19.99"))
       iex> |> Z.json_schema()
       %{
@@ -260,7 +260,7 @@ defmodule Zot do
   It can be converted into json schema:
 
       iex> Z.email()
-      iex> |> Z.description("A user's email address.")
+      iex> |> Z.describe("A user's email address.")
       iex> |> Z.example("foo@zot.dev")
       iex> |> Z.json_schema()
       %{
@@ -304,7 +304,7 @@ defmodule Zot do
   It can be converted to json schema:
 
       iex> Z.enum([:red, :green, :blue])
-      iex> |> Z.description("A color.")
+      iex> |> Z.describe("A color.")
       iex> |> Z.example(:green)
       iex> |> Z.json_schema()
       %{
@@ -362,7 +362,7 @@ defmodule Zot do
   It can be converted into json schema:
 
       iex> Z.float(min: 0.0, max: 1.0)
-      iex> |> Z.description("A percentage.")
+      iex> |> Z.describe("A percentage.")
       iex> |> Z.example(0.425)
       iex> |> Z.json_schema()
       %{
@@ -421,7 +421,7 @@ defmodule Zot do
   It can be converted into json schema:
 
       iex> Z.int(min: 0, max: 100)
-      iex> |> Z.description("A percentage.")
+      iex> |> Z.describe("A percentage.")
       iex> |> Z.example(42)
       iex> |> Z.json_schema()
       %{
@@ -466,7 +466,7 @@ defmodule Zot do
 
       iex> Z.string()
       iex> |> Z.list(min: 1, max: 5)
-      iex> |> Z.description("A list of tags.")
+      iex> |> Z.describe("A list of tags.")
       iex> |> Z.example(["elixir", "zot"])
       iex> |> Z.json_schema()
       %{
@@ -568,7 +568,7 @@ defmodule Zot do
   It can be converted into json schema:
 
       iex> Z.literal("active")
-      iex> |> Z.description("Lorem ipsum.")
+      iex> |> Z.describe("Lorem ipsum.")
       iex> |> Z.json_schema()
       %{
         "const" => "active",
@@ -597,7 +597,7 @@ defmodule Zot do
   It can be converted into json schema:
 
       iex> Z.map(%{name: Z.string(), age: Z.int(min: 0)})
-      iex> |> Z.description("A person's profile.")
+      iex> |> Z.describe("A person's profile.")
       iex> |> Z.example(%{name: "Bob", age: 30})
       iex> |> Z.json_schema()
       %{
@@ -638,7 +638,7 @@ defmodule Zot do
   It can be converted into json schema:
 
       iex> Z.number(min: 0.5, max: 100)
-      iex> |> Z.description("A percentage.")
+      iex> |> Z.describe("A percentage.")
       iex> |> Z.example(42)
       iex> |> Z.json_schema()
       %{
@@ -685,7 +685,7 @@ defmodule Zot do
   It can be converted into json schema:
 
       iex> Z.numeric(min: 3, max: 8)
-      iex> |> Z.description("A numeric code.")
+      iex> |> Z.describe("A numeric code.")
       iex> |> Z.example("123456")
       iex> |> Z.json_schema()
       %{
@@ -738,7 +738,7 @@ defmodule Zot do
   It can be converted into json schema:
 
       iex> Z.strict_map(%{name: Z.string(), age: Z.int(min: 0)})
-      iex> |> Z.description("A person's profile.")
+      iex> |> Z.describe("A person's profile.")
       iex> |> Z.example(%{name: "Bob", age: 30})
       iex> |> Z.json_schema()
       %{
@@ -878,7 +878,7 @@ defmodule Zot do
   It can be converted into json schema:
 
       iex> Z.string(starts_with: "u_", length: 28)
-      iex> |> Z.description("A user id.")
+      iex> |> Z.describe("A user id.")
       iex> |> Z.example("u_12345678901234567890123456")
       iex> |> Z.json_schema()
       %{
@@ -1062,7 +1062,7 @@ defmodule Zot do
   It can be converted into json schema:
 
       iex> Z.uuid(:v4)
-      iex> |> Z.description("A universally unique identifier.")
+      iex> |> Z.describe("A universally unique identifier.")
       iex> |> Z.example("550e8400-e29b-41d4-a716-446655440000")
       iex> |> Z.json_schema()
       %{
@@ -1101,7 +1101,7 @@ defmodule Zot do
   @doc ~S"""
   Attaches a description to the type, for use in JSON Schema.
   """
-  def description(type(_) = type, desc)
+  def describe(type(_) = type, desc)
       when is_nil(desc)
       when is_binary(desc) and byte_size(desc) > 0,
       do: %{type | description: desc}
