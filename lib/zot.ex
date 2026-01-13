@@ -1143,6 +1143,13 @@ defmodule Zot do
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
   @doc ~S"""
+  Constraint phone numbers to a limited set of country codes.
+
+  See `phone/1` for more details.
+  """
+  defdelegate allowed_country_codes(type, value, opts \\ []), to: Zot.Type.Phone
+
+  @doc ~S"""
   Enforces that the URI has one of the given allowed schemes.
 
   See `uri/1` for more details.
@@ -1178,6 +1185,13 @@ defmodule Zot do
   Attaches an example value to the type, for use in JSON Schema.
   """
   def example(type(_) = type, example), do: %{type | example: example}
+
+  @doc ~S"""
+  Defines the behavior for leading plus signs in phone numbers.
+
+  See `phone/1` for more details.
+  """
+  defdelegate leading_plus_sign(type, value), to: Zot.Type.Phone
 
   @doc ~S"""
   Enforces that the string has the given length.
