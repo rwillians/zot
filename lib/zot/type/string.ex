@@ -102,9 +102,8 @@ defimpl Zot.Type, for: Zot.Type.String do
       "example" => type.example,
       "maxLength" => render(type.max) || render(type.length),
       "minLength" => render(type.min) || render(type.length),
-      "nullable" => not type.required,
       "pattern" => render(type.regex),
-      "type" => "string"
+      "type" => json_type("string", type.required)
     }
   end
 

@@ -47,8 +47,7 @@ defimpl Zot.Type, for: Zot.Type.Decimal do
       "example" => render(type.example),
       "maximum" => render(type.max),
       "minimum" => render(type.min),
-      "nullable" => not type.required,
-      "type" => "number"
+      "type" => json_type("number", type.required)
     }
   end
 

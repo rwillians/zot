@@ -43,8 +43,7 @@ defimpl Zot.Type, for: Zot.Type.Number do
       "example" => type.example,
       "maximum" => render(type.max),
       "minimum" => render(type.min),
-      "nullable" => not type.required,
-      "type" => "number"
+      "type" => json_type("number", type.required)
     }
   end
 

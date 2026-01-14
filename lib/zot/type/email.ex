@@ -39,8 +39,7 @@ defimpl Zot.Type, for: Zot.Type.Email do
       "description" => type.description,
       "example" => type.example,
       "format" => "email",
-      "nullable" => not type.required,
-      "type" => "string"
+      "type" => json_type("string", type.required)
     }
   end
 

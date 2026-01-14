@@ -109,8 +109,7 @@ defmodule Zot do
       %{
         "type" => "boolean",
         "description" => "A boolean flag.",
-        "example" => true,
-        "nullable" => false
+        "example" => true
       }
 
   """
@@ -165,8 +164,7 @@ defmodule Zot do
         "type" => "string",
         "format" => "date-time",
         "description" => "A timestamp.",
-        "example" => "2026-01-10T10:23:45.123Z",
-        "nullable" => false
+        "example" => "2026-01-10T10:23:45.123Z"
       }
 
   """
@@ -223,7 +221,6 @@ defmodule Zot do
         "type" => "number",
         "description" => "A monetary amount.",
         "example" => 19.99,
-        "nullable" => false,
         "minimum" => 1.0,
         "maximum" => 100.0
       }
@@ -267,8 +264,7 @@ defmodule Zot do
         "type" => "string",
         "format" => "email",
         "description" => "A user's email address.",
-        "example" => "foo@zot.dev",
-        "nullable" => false
+        "example" => "foo@zot.dev"
       }
 
   """
@@ -311,8 +307,7 @@ defmodule Zot do
         "type" => "string",
         "enum" => ["red", "green", "blue"],
         "description" => "A color.",
-        "example" => "green",
-        "nullable" => false
+        "example" => "green"
       }
 
   """
@@ -370,8 +365,7 @@ defmodule Zot do
         "description" => "A percentage.",
         "example" => 0.425,
         "minimum" => 0.0,
-        "maximum" => 1.0,
-        "nullable" => false
+        "maximum" => 1.0
       }
 
   """
@@ -429,8 +423,7 @@ defmodule Zot do
         "description" => "A percentage.",
         "example" => 42,
         "minimum" => 0,
-        "maximum" => 100,
-        "nullable" => false
+        "maximum" => 100
       }
 
   """
@@ -472,11 +465,9 @@ defmodule Zot do
       %{
         "type" => "array",
         "items" => %{
-          "type" => "string",
-          "nullable" => false
+          "type" => "string"
         },
         "description" => "A list of tags.",
-        "nullable" => false,
         "minItems" => 1,
         "maxItems" => 5
       }
@@ -606,13 +597,11 @@ defmodule Zot do
         "example" => %{name: "Bob", age: 30},
         "properties" => %{
           "name" => %{
-            "type" => "string",
-            "nullable" => false
+            "type" => "string"
           },
           "age" => %{
             "type" => "integer",
-            "minimum" => 0,
-            "nullable" => false
+            "minimum" => 0
           }
         },
         "required" => ["name", "age"],
@@ -646,8 +635,7 @@ defmodule Zot do
         "description" => "A percentage.",
         "example" => 42,
         "minimum" => 0.5,
-        "maximum" => 100,
-        "nullable" => false
+        "maximum" => 100
       }
 
   See `float/1` and `int/1` for more examples.
@@ -754,7 +742,6 @@ defmodule Zot do
         "format" => "phone",
         "maxLength" => 16,
         "minLength" => 9,
-        "nullable" => false,
         "pattern" => "^\\+[0-9]{8,15}$",
         "type" => "string"
       }
@@ -809,13 +796,11 @@ defmodule Zot do
         "example" => %{name: "Bob", age: 30},
         "properties" => %{
           "name" => %{
-            "type" => "string",
-            "nullable" => false
+            "type" => "string"
           },
           "age" => %{
             "type" => "integer",
-            "minimum" => 0,
-            "nullable" => false
+            "minimum" => 0
           }
         },
         "required" => ["name", "age"],
@@ -947,7 +932,6 @@ defmodule Zot do
         "type" => "string",
         "description" => "A user id.",
         "example" => "u_12345678901234567890123456",
-        "nullable" => false,
         "minLength" => 28,
         "maxLength" => 28
       }
@@ -985,12 +969,10 @@ defmodule Zot do
       %{
         "anyOf" => [
           %{
-            "type" => "string",
-            "nullable" => false
+            "type" => "string"
           },
           %{
-            "type" => "integer",
-            "nullable" => false
+            "type" => "integer"
           }
         ]
       }
@@ -1131,8 +1113,7 @@ defmodule Zot do
         "type" => "string",
         "format" => "uuid",
         "description" => "A universally unique identifier.",
-        "example" => "550e8400-e29b-41d4-a716-446655440000",
-        "nullable" => false
+        "example" => "550e8400-e29b-41d4-a716-446655440000"
       }
 
   """
@@ -1266,12 +1247,10 @@ defmodule Zot do
         "example" => %{"name" => "Bob", "age" => 18},
         "properties" => %{
           "name" => %{
-            "type" => "string",
-            "nullable" => true
+            "type" => ["string", "null"]
           },
           "age" => %{
-            "type" => "integer",
-            "nullable" => true
+            "type" => ["integer", "null"]
           }
         },
         "required" => [],

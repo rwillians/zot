@@ -23,8 +23,7 @@ defimpl Zot.Type, for: Zot.Type.Boolean do
     %{
       "description" => type.description,
       "example" => type.example,
-      "nullable" => not type.required,
-      "type" => "boolean"
+      "type" => json_type("boolean", type.required)
     }
   end
 

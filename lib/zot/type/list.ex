@@ -47,8 +47,7 @@ defimpl Zot.Type, for: Zot.Type.List do
       "items" => Zot.json_schema(type.inner_type),
       "maxItems" => render(type.max),
       "minItems" => render(type.min),
-      "nullable" => not type.required,
-      "type" => "array"
+      "type" => json_type("array", type.required)
     }
   end
 

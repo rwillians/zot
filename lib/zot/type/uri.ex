@@ -52,8 +52,7 @@ defimpl Zot.Type, for: Zot.Type.URI do
       "description" => type.description,
       "example" => type.example,
       "format" => "uri",
-      "nullable" => not type.required,
-      "type" => "string"
+      "type" => json_type("string", type.required)
     }
   end
 

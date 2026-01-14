@@ -28,8 +28,7 @@ defimpl Zot.Type, for: Zot.Type.UUID do
       "description" => type.description,
       "example" => type.example,
       "format" => "uuid",
-      "nullable" => not type.required,
-      "type" => "string"
+      "type" => json_type("string", type.required)
     }
   end
 

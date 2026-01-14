@@ -36,6 +36,16 @@ defmodule Zot.Commons do
   def render(value), do: to_string(value)
 
   @doc ~S"""
+  Builds the JSON Schema "type" field, handling nullable types.
+  """
+  @spec json_type(type_name, required?) :: String.t() | [String.t()]
+        when type_name: String.t(),
+             required?: boolean
+
+  def json_type(type_name, true) when is_binary(type_name), do: type_name
+  def json_type(type_name, false) when is_binary(type_name), do: [type_name, "null"]
+
+  @doc ~S"""
   Validates that the given value is included in the provided list of
   values.
   """

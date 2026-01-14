@@ -326,9 +326,8 @@ defimpl Zot.Type, for: Zot.Type.Phone do
       "format" => "phone",
       "maxLength" => max,
       "minLength" => min,
-      "nullable" => not type.required,
       "pattern" => render(regex),
-      "type" => "string"
+      "type" => json_type("string", type.required)
     }
   end
 

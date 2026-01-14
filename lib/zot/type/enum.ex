@@ -36,8 +36,7 @@ defimpl Zot.Type, for: Zot.Type.Enum do
       "description" => type.description,
       "enum" => render(type.values),
       "example" => render(type.example || List.first(type.values)),
-      "nullable" => not type.required,
-      "type" => "string"
+      "type" => json_type("string", type.required)
     }
   end
 

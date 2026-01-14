@@ -57,10 +57,9 @@ defimpl Zot.Type, for: Zot.Type.DateTime do
   def json_schema(%Zot.Type.DateTime{} = type) do
     %{
       "description" => type.description,
-      "example" => "2026-01-10T10:23:45.123Z",
+      "example" => render(type.example),
       "format" => "date-time",
-      "nullable" => not type.required,
-      "type" => "string"
+      "type" => json_type("string", type.required)
     }
   end
 
