@@ -45,6 +45,52 @@ defmodule Zot do
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
   @doc ~S"""
+  Creates an atom type.
+
+  ## Examples
+
+      iex> Z.atom()
+      iex> |> Z.parse(:foo)
+      {:ok, :foo}
+
+      iex> Z.atom()
+      iex> |> Z.parse("bar")
+      iex> |> unwrap_issue_message()
+      "expected type atom, got string"
+
+  With `coerce: true`, it converts strings to existing atoms only:
+
+      iex> Z.atom()
+      iex> |> Z.parse("foo", coerce: true)
+      {:ok, :foo}
+
+      iex> Z.atom()
+      iex> |> Z.parse("this_atom_does_not_exist", coerce: true)
+      iex> |> unwrap_issue_message()
+      "atom 'this_atom_does_not_exist' does not exist"
+
+  With `coerce: :unsafe`, it converts any string to an atom:
+
+      iex> Z.atom()
+      iex> |> Z.parse("some_new_atom", coerce: :unsafe)
+      {:ok, :some_new_atom}
+
+  It can be converted into json schema:
+
+      iex> Z.atom()
+      iex> |> Z.describe("A status atom.")
+      iex> |> Z.example(:active)
+      iex> |> Z.json_schema()
+      %{
+        "type" => "string",
+        "description" => "A status atom.",
+        "example" => "active"
+      }
+
+  """
+  defdelegate atom, to: Zot.Type.Atom, as: :new
+
+  @doc ~S"""
   Creates a boolean type.
 
   ## Examples

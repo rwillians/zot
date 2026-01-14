@@ -50,7 +50,7 @@ defmodule Zot.Utils do
   @doc ~S"""
   Retrieves the `:coerce` flag from the given options.
   """
-  @spec coerce_flag(keyword) :: boolean
+  @spec coerce_flag(keyword) :: boolean | :unsafe
 
   def coerce_flag(opts)
       when is_list(opts),
