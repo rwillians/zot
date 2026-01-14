@@ -89,7 +89,7 @@ defimpl Zot.Type, for: Zot.Type.UUID do
   catch
     :error -> {:error, [issue("is invalid")]}
   else
-    uuid -> {:ok, uuid}
+    _ -> :ok
   end
 
   defp cast(_), do: {:error, [issue("is invalid")]}

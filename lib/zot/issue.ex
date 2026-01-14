@@ -34,10 +34,10 @@ defmodule Zot.Issue do
   @doc ~S"""
   Creates a new issue.
   """
-  @spec issue(template) :: t when template: String.t()
+  @spec issue(template :: String.t()) :: t
   @spec issue(template, params) :: t when template: String.t(), params: keyword
   @spec issue(path, template) :: t when path: [segment], template: String.t()
-  @spec issue(path, template, params) :: t when path: [segment], template: String.t(), params: keyword
+  @spec issue(path :: [segment], template :: String.t(), params :: keyword) :: t
 
   def issue(template)
       when is_binary(template),

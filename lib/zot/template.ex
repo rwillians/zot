@@ -23,16 +23,33 @@ defmodule Zot.Template do
     struct_fields = Macro.escape(Keyword.keys(ast) ++ shared_fields ++ [__zot_type__: true])
     defaults = Enum.map(ast, fn {field, opts} -> {field, Keyword.get(opts, :default)} end)
 
-    reducer_fn =
-      {:fn, [],
-       ast
-       |> Enum.sort_by(&elem(&1, 0))
-       |> Enum.flat_map(&reducer_fn_modifier_clauses/1)
-       |> Enum.concat([reducer_fn_raise_clause()])}
-
     quote do
       defstruct unquote(struct_fields)
 
+      @doc false
+      unquote(build_constructor(ast, defaults))
+    end
+  end
+
+  #
+  #   PRIVATE
+  #
+
+  defp build_constructor([], _) do
+    quote do
+      def new, do: %__MODULE__{}
+    end
+  end
+
+  defp build_constructor(ast, defaults) do
+    reducer_fn =
+      {:fn, [],
+        ast
+        |> Enum.sort_by(&elem(&1, 0))
+        |> Enum.flat_map(&reducer_fn_modifier_clauses/1)
+        |> Enum.concat([reducer_fn_raise_clause()])}
+
+    quote do
       def new(opts \\ []) do
         unquote(defaults)
         |> Keyword.merge(opts)
@@ -40,10 +57,6 @@ defmodule Zot.Template do
       end
     end
   end
-
-  #
-  #   PRIVATE
-  #
 
   defp reducer_fn_modifier_clauses({modifier, _}) do
     [

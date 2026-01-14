@@ -16,10 +16,9 @@ defmodule Zot.Commons do
   end
 
   @doc ~S"""
-  Renders a value to be used in error messages or in the generated
-  json schema.
+  Renders a value to be used in error messages.
   """
-  @spec render(term) :: nil | String.t() | number | boolean
+  @spec render(term) :: nil | String.t() | number | boolean | list
 
   def render(nil), do: nil
   def render(value) when is_binary(value), do: value
@@ -38,7 +37,7 @@ defmodule Zot.Commons do
   @doc ~S"""
   Builds the JSON Schema "type" field, handling nullable types.
   """
-  @spec json_type(type_name, required?) :: String.t() | [String.t()]
+  @spec json_type(type_name, required?) :: String.t() | [String.t(), ...]
         when type_name: String.t(),
              required?: boolean
 
