@@ -74,7 +74,7 @@ defimpl Zot.Type, for: Zot.Type.List do
 
     case {parsed, issues} do
       {_, []} -> {:ok, :lists.reverse(parsed)}
-      {[], [_ | _]} -> {:error, :issues}
+      {[], [_ | _]} -> {:error, issues}
       {[_ | _], [_ | _]} -> {:error, issues, :lists.reverse(parsed)}
     end
   end
