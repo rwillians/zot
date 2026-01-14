@@ -1,6 +1,7 @@
 /priv/plts/*.plt.hash
 /priv/plts/*.plt
 /.elixir_ls/
+/priv/plts/
 /ignore/
 /_build/
 /cover/
