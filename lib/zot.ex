@@ -275,6 +275,130 @@ defmodule Zot do
   defdelegate decimal(opts \\ []), to: Zot.Type.Decimal, as: :new
 
   @doc ~S"""
+  Creates a discriminated union of two or more map types.
+
+  Unlike `union/1`, this provides more precise error reporting by
+  using a discriminator field to determine which variant to parse.
+
+  ## Examples
+
+  Successful parsing with different variants:
+
+      iex> Z.discriminated_union(:type, [
+      iex>   Z.map(%{type: Z.literal("dog"), barks: Z.boolean()}),
+      iex>   Z.map(%{type: Z.literal("cat"), meows: Z.boolean()})
+      iex> ])
+      iex> |> Z.parse(%{type: "dog", barks: true})
+      {:ok, %{type: "dog", barks: true}}
+
+      iex> Z.discriminated_union(:type, [
+      iex>   Z.map(%{type: Z.literal("dog"), barks: Z.boolean()}),
+      iex>   Z.map(%{type: Z.literal("cat"), meows: Z.boolean()})
+      iex> ])
+      iex> |> Z.parse(%{type: "cat", meows: true})
+      {:ok, %{type: "cat", meows: true}}
+
+  Works with string keys in the input:
+
+      iex> Z.discriminated_union(:type, [
+      iex>   Z.map(%{type: Z.literal("dog"), barks: Z.boolean()}),
+      iex>   Z.map(%{type: Z.literal("cat"), meows: Z.boolean()})
+      iex> ])
+      iex> |> Z.parse(%{"type" => "dog", "barks" => true})
+      {:ok, %{type: "dog", barks: true}}
+
+  Error when discriminator value doesn't match any variant:
+
+      iex> Z.discriminated_union(:type, [
+      iex>   Z.map(%{type: Z.literal("dog"), barks: Z.boolean()}),
+      iex>   Z.map(%{type: Z.literal("cat"), meows: Z.boolean()})
+      iex> ])
+      iex> |> Z.parse(%{type: "bird", flies: true})
+      iex> |> unwrap_issue_message()
+      "expected field type to be one of 'dog' or 'cat', got 'bird'"
+
+  Error when input is not a map:
+
+      iex> Z.discriminated_union(:type, [
+      iex>   Z.map(%{type: Z.literal("dog"), barks: Z.boolean()}),
+      iex>   Z.map(%{type: Z.literal("cat"), meows: Z.boolean()})
+      iex> ])
+      iex> |> Z.parse("not a map")
+      iex> |> unwrap_issue_message()
+      "expected type map, got string"
+
+  ArgumentError when discriminator field is missing from a map type:
+
+      iex> try do
+      iex>   Z.discriminated_union(:kind, [
+      iex>     Z.map(%{type: Z.literal("dog")}),
+      iex>     Z.map(%{type: Z.literal("cat")})
+      iex>   ])
+      iex> rescue
+      iex>   e in ArgumentError -> e.message
+      iex> end
+      "the discriminator field :kind must exist in all map types"
+
+  ArgumentError when inner types are not map types:
+
+      iex> try do
+      iex>   Z.discriminated_union(:type, [Z.string(), Z.int()])
+      iex> rescue
+      iex>   e in ArgumentError -> e.message
+      iex> end
+      "discriminated union only accepts map types, got Zot.Type.String"
+
+  ArgumentError when discriminator field is not a literal type:
+
+      iex> try do
+      iex>   Z.discriminated_union(:type, [
+      iex>     Z.map(%{type: Z.string(), name: Z.string()}),
+      iex>     Z.map(%{type: Z.string(), age: Z.int()})
+      iex>   ])
+      iex> rescue
+      iex>   e in ArgumentError -> e.message
+      iex> end
+      "the discriminator field :type must be a literal type, got Zot.Type.String"
+
+  It can be converted into json schema:
+
+      iex> Z.discriminated_union(:type, [
+      iex>   Z.map(%{type: Z.literal("dog"), barks: Z.boolean()}),
+      iex>   Z.map(%{type: Z.literal("cat"), meows: Z.boolean()})
+      iex> ])
+      iex> |> Z.json_schema()
+      %{
+        "oneOf" => [
+          %{
+            "type" => "object",
+            "additionalProperties" => true,
+            "properties" => %{
+              "type" => %{"const" => "dog"},
+              "barks" => %{"type" => "boolean"}
+            },
+            "required" => ["type", "barks"]
+          },
+          %{
+            "type" => "object",
+            "additionalProperties" => true,
+            "properties" => %{
+              "type" => %{"const" => "cat"},
+              "meows" => %{"type" => "boolean"}
+            },
+            "required" => ["type", "meows"]
+          }
+        ],
+        "discriminator" => %{
+          "propertyName" => "type"
+        }
+      }
+
+  """
+  def discriminated_union(discriminator, types)
+      when is_atom(discriminator) and is_list(types),
+      do: Zot.Type.DiscriminatedUnion.new(discriminator: discriminator, inner_types: types)
+
+  @doc ~S"""
   Creates an email type.
 
   ## Examples
