@@ -1395,20 +1395,27 @@ defmodule Zot do
   def optional(type(_) = type), do: %{type | required: false}
 
   @doc ~S"""
-  Makes all fields optional. After successfully parsed and validate,
-  drops all nil fields from the resulting map.
+  Makes all fields optional. Optionally drops all nil fields from the
+  resulting map, after successfully parsed and validate.
 
   ## Examples
 
       iex> Z.strict_map(%{name: Z.string(), age: Z.int()})
       iex> |> Z.partial()
       iex> |> Z.parse(%{name: "Alice"})
-      {:ok, %{name: "Alice"}}
+      {:ok, %{name: "Alice", age: nil}}
 
       iex> Z.strict_map(%{name: Z.string(), age: Z.int()})
       iex> |> Z.partial()
       iex> |> Z.parse(%{})
-      {:ok, %{}}
+      {:ok, %{name: nil, age: nil}}
+
+  You can optionally compact the resulting map (drop nil fields):
+
+      iex> Z.strict_map(%{name: Z.string(), age: Z.int()})
+      iex> |> Z.partial(compact: true)
+      iex> |> Z.parse(%{name: "Alice"})
+      {:ok, %{name: "Alice"}}
 
   It can be converted into json schema:
 
@@ -1434,14 +1441,22 @@ defmodule Zot do
       }
 
   """
-  def partial(%Zot.Type.Map{} = type) do
+  def partial(%Zot.Type.Map{} = type, opts \\ []) do
     shape =
       type.shape
       |> Enum.map(fn {key, t} -> {key, optional(t)} end)
       |> Enum.into(%{})
 
-    transform(%{type | shape: shape}, {__MODULE__, :__drop_nil_fields__, []})
+    case Keyword.get(opts, :compact, false) do
+      true -> transform(%{type | shape: shape}, {__MODULE__, :__drop_nil_fields__, []})
+      false -> %{type | shape: shape}
+    end
   end
+
+  @doc ~S"""
+  Alias for `partial/2` with option `compact: true`.
+  """
+  def partial_compact(type), do: partial(type, compact: true)
 
   @doc ~S"""
   Adds a custom refinement to the given type's effects pipeline, which
