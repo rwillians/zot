@@ -655,7 +655,10 @@ defmodule Zot do
       }
 
   """
-  def map(shape), do: Zot.Type.Map.new(mode: :strip, shape: shape)
+  def map(shape)
+      when is_non_struct_map(shape)
+      when is_list(shape),
+      do: Zot.Type.Map.new(mode: :strip, shape: Enum.into(shape, %{}))
 
   @doc ~S"""
   Creates a number type (union of integer and float types).
@@ -854,7 +857,10 @@ defmodule Zot do
       }
 
   """
-  def strict_map(shape), do: Zot.Type.Map.new(mode: :strict, shape: shape)
+  def strict_map(shape)
+      when is_non_struct_map(shape)
+      when is_list(shape),
+      do: Zot.Type.Map.new(mode: :strict, shape: Enum.into(shape, %{}))
 
   @doc ~S"""
   Creates a string type.
