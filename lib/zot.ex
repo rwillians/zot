@@ -45,6 +45,53 @@ defmodule Zot do
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
   @doc ~S"""
+  Creates a type that accepts any value.
+
+  ## Examples
+
+      iex> Z.any()
+      iex> |> Z.parse("hello")
+      {:ok, "hello"}
+
+      iex> Z.any()
+      iex> |> Z.parse(42)
+      {:ok, 42}
+
+      iex> Z.any()
+      iex> |> Z.parse(%{foo: "bar"})
+      {:ok, %{foo: "bar"}}
+
+      iex> Z.any()
+      iex> |> Z.optional()
+      iex> |> Z.parse(nil)
+      {:ok, nil}
+
+  Useful in maps where a field can accept any value:
+
+      iex> Z.map(%{name: Z.string(), metadata: Z.any()})
+      iex> |> Z.parse(%{name: "Alice", metadata: %{role: "admin", tags: [1, 2, 3]}})
+      {:ok, %{name: "Alice", metadata: %{role: "admin", tags: [1, 2, 3]}}}
+
+  Supports transform and refine effects:
+
+      iex> Z.any()
+      iex> |> Z.transform(&inspect/1)
+      iex> |> Z.parse({:ok, 42})
+      {:ok, "{:ok, 42}"}
+
+  It can be converted into json schema:
+
+      iex> Z.any()
+      iex> |> Z.describe("Arbitrary metadata.")
+      iex> |> Z.json_schema()
+      %{
+        "description" => "Arbitrary metadata."
+      }
+
+  """
+  defdelegate any, to: Zot.Type.Any, as: :new
+
+  @doc ~S"""
   Creates an atom type.
 
   ## Examples
