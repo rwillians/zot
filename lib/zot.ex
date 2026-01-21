@@ -832,6 +832,49 @@ defmodule Zot do
       do: Zot.Type.Map.new(mode: :strip, shape: Enum.into(shape, %{}))
 
   @doc ~S"""
+  Merges two map types into a new map type.
+
+  The second map's fields override the first on conflicts. The resulting
+  map is strict if either input map is strict.
+
+  Note that `required`, `default`, `description`, `example`, and `effects`
+  are lost when merging two maps. Use the appropriate modifiers after
+  merging to set these fields.
+
+  ## Examples
+
+      iex> map1 = Z.map(%{name: Z.string()})
+      iex> map2 = Z.map(%{age: Z.int()})
+      iex> Z.merge(map1, map2)
+      iex> |> Z.parse(%{name: "Alice", age: 30})
+      {:ok, %{name: "Alice", age: 30}}
+
+      iex> map1 = Z.map(%{name: Z.string()})
+      iex> map2 = Z.map(%{name: Z.int()})
+      iex> Z.merge(map1, map2)
+      iex> |> Z.parse(%{name: 42})
+      {:ok, %{name: 42}}
+
+      iex> map1 = Z.strict_map(%{name: Z.string()})
+      iex> map2 = Z.map(%{age: Z.int()})
+      iex> Z.merge(map1, map2)
+      iex> |> Z.parse(%{name: "Alice", age: 30, extra: "field"})
+      iex> |> unwrap_issue_message()
+      "unknown field"
+
+  """
+  def merge(%Zot.Type.Map{} = a, %Zot.Type.Map{} = b) do
+    mode =
+      if :strict in [a.mode, b.mode],
+        do: :strict,
+        else: :strip
+
+    shape = Map.merge(a.shape, b.shape)
+
+    Zot.Type.Map.new(mode: mode, shape: shape)
+  end
+
+  @doc ~S"""
   Creates a number type (union of integer and float types).
 
   ## Examples
@@ -861,6 +904,36 @@ defmodule Zot do
   See `float/1` and `int/1` for more examples.
   """
   defdelegate number(opts \\ []), to: Zot.Type.Number, as: :new
+
+  @doc ~S"""
+  Creates a non-empty string type that trims whitespace.
+
+  This is an alias for `string(trim: true, min: 1)`.
+
+  ## Examples
+
+      iex> Z.non_empty_string()
+      iex> |> Z.parse("hello")
+      {:ok, "hello"}
+
+      iex> Z.non_empty_string()
+      iex> |> Z.parse("   ")
+      iex> |> unwrap_issue_message()
+      "must be at least 1 characters long, got 0"
+
+      iex> Z.non_empty_string()
+      iex> |> Z.parse("")
+      iex> |> unwrap_issue_message()
+      "must be at least 1 characters long, got 0"
+
+  Whitespace is trimmed before validation:
+
+      iex> Z.non_empty_string()
+      iex> |> Z.parse("  hello  ")
+      {:ok, "hello"}
+
+  """
+  def non_empty_string, do: string(trim: true, min: 1)
 
   @doc ~S"""
   Creates a numeric string type.
