@@ -4,7 +4,7 @@ defmodule Zot.Context do
   """
 
   import Zot.Issue, only: [issue: 2, issue: 3, prepend_path: 2]
-  import Zot.Utils, only: [is_mfa: 1, resolve: 1, type: 1]
+  import Zot.Utils, only: [is_mfa: 1, resolve: 1, zot_type: 1]
 
   alias __MODULE__
 
@@ -38,7 +38,7 @@ defmodule Zot.Context do
              input: term,
              opts: keyword
 
-  def new(type(_) = type, input, opts \\ [])
+  def new(zot_type(_) = type, input, opts \\ [])
       when is_list(opts),
       do: %Context{type: type, opts: opts, input: input, output: input}
 

@@ -9,7 +9,7 @@ defmodule Zot.Type.List do
           min:        [t: Zot.Parameterized.t(non_neg_integer) | nil],
           max:        [t: Zot.Parameterized.t(pos_integer) | nil]
 
-  def inner_type(%Zot.Type.List{} = type, type(_) = inner_type),
+  def inner_type(%Zot.Type.List{} = type, zot_type(_) = inner_type),
     do: %{type | inner_type: inner_type}
 
   @opts error: "must have at least %{expected} items, got %{actual}"

@@ -8,10 +8,10 @@ defmodule Zot.Type.Record do
   deftype keys_type:   [t: Zot.Type.t(), default: Zot.Type.String.new()],
           values_type: [t: Zot.Type.t()]
 
-  def keys_type(%Zot.Type.Record{} = type, type(_) = value),
+  def keys_type(%Zot.Type.Record{} = type, zot_type(_) = value),
     do: %{type | keys_type: value}
 
-  def values_type(%Zot.Type.Record{} = type, type(_) = value),
+  def values_type(%Zot.Type.Record{} = type, zot_type(_) = value),
     do: %{type | values_type: value}
 end
 

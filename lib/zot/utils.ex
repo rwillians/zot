@@ -33,7 +33,7 @@ defmodule Zot.Utils do
   Pattern matches a Zot type struct, assigning its module to the given
   variable.
   """
-  defmacro type(var) do
+  defmacro zot_type(var) do
     quote do
       %unquote(var){
         __zot_type__: true,
