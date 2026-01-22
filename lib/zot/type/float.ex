@@ -6,7 +6,8 @@ defmodule Zot.Type.Float do
   use Zot.Template
 
   deftype min: [t: Zot.Parameterized.t(number) | nil],
-          max: [t: Zot.Parameterized.t(number) | nil]
+          max: [t: Zot.Parameterized.t(number) | nil],
+          precision: [t: non_neg_integer | nil]
 
   @opts error: "must be at least %{expected}, got %{actual}"
   def min(type, value, opts \\ [])
@@ -23,6 +24,11 @@ defmodule Zot.Type.Float do
   def max(%Zot.Type.Float{} = type, value, opts)
       when is_number(value),
       do: %{type | max: p(value, @opts, opts)}
+
+  def precision(%Zot.Type.Float{} = type, value)
+      when is_nil(value)
+      when is_integer(value) and value >= 0,
+      do: %{type | precision: value}
 end
 
 defimpl Zot.Type, for: Zot.Type.Float do
@@ -33,6 +39,7 @@ defimpl Zot.Type, for: Zot.Type.Float do
     with {:ok, value} <- coerce(value, coerce_flag(opts)),
          :ok <- validate_type(value, is: "float"),
          :ok <- validate_number(value, min: type.min, max: type.max),
+         value <- apply_precision(value, type.precision),
          do: {:ok, value}
   end
 
@@ -63,4 +70,7 @@ defimpl Zot.Type, for: Zot.Type.Float do
   end
   # ↓ let validate_type/2 handle it
   defp coerce(value, _), do: {:ok, value}
+
+  defp apply_precision(value, nil), do: value
+  defp apply_precision(value, precision), do: Float.round(value, precision)
 end

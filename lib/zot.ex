@@ -553,6 +553,12 @@ defmodule Zot do
       iex> |> unwrap_issue_message()
       "must be at most 10.0, got 10.01"
 
+  You can round to a given number of decimal places:
+
+      iex> Z.float(precision: 2)
+      iex> |> Z.parse(3.14159)
+      {:ok, 3.14}
+
   It can be coerced from an int:
 
       iex> Z.float()
@@ -1577,6 +1583,19 @@ defmodule Zot do
   Alias for `partial/2` with option `compact: true`.
   """
   def partial_compact(type), do: partial(type, compact: true)
+
+  @doc ~S"""
+  Rounds the float to the given number of decimal places.
+
+  ## Examples
+
+      iex> Z.float()
+      iex> |> Z.precision(2)
+      iex> |> Z.parse(3.14159)
+      {:ok, 3.14}
+
+  """
+  def precision(%Zot.Type.Float{} = type, value), do: Zot.Type.Float.precision(type, value)
 
   @doc ~S"""
   Adds a custom refinement to the given type's effects pipeline, which
