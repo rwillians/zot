@@ -6,7 +6,8 @@ defmodule Zot.Type.Decimal do
   use Zot.Template
 
   deftype min: [t: Zot.Parameterized.t(Decimal.t()) | nil],
-          max: [t: Zot.Parameterized.t(Decimal.t()) | nil]
+          max: [t: Zot.Parameterized.t(Decimal.t()) | nil],
+          precision: [t: non_neg_integer | nil]
 
   @opts error: "must be at least %{expected}, got %{actual}"
   def min(type, value, opts \\ [])
@@ -27,6 +28,11 @@ defmodule Zot.Type.Decimal do
       when is_float(value)
       when is_struct(value, Decimal),
       do: %{type | max: p(value, @opts, opts)}
+
+  def precision(%Zot.Type.Decimal{} = type, value)
+      when is_nil(value)
+      when is_integer(value) and value >= 0,
+      do: %{type | precision: value}
 end
 
 defimpl Zot.Type, for: Zot.Type.Decimal do
@@ -37,6 +43,7 @@ defimpl Zot.Type, for: Zot.Type.Decimal do
     with {:ok, value} <- coerce(value, coerce_flag(opts)),
          :ok <- validate_type(value, is: "Decimal"),
          :ok <- validate_number(value, min: type.min, max: type.max),
+         value <- apply_precision(value, type.precision),
          do: {:ok, value}
   end
 
@@ -67,4 +74,7 @@ defimpl Zot.Type, for: Zot.Type.Decimal do
   end
   # ↓ let validate_type/2 handle it
   defp coerce(value, _), do: {:ok, value}
+
+  defp apply_precision(value, nil), do: value
+  defp apply_precision(value, precision), do: Decimal.round(value, precision)
 end

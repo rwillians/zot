@@ -286,6 +286,12 @@ defmodule Zot do
       iex> |> unwrap_issue_message()
       "must be at most 9.99, got 10.0"
 
+  You can round to a given number of decimal places:
+
+      iex> Z.decimal(precision: 2)
+      iex> |> Z.parse(Decimal.new("3.14159"))
+      {:ok, Decimal.new("3.14")}
+
   It can be coerced from an int:
 
       iex> Z.decimal()
@@ -1594,7 +1600,13 @@ defmodule Zot do
       iex> |> Z.parse(3.14159)
       {:ok, 3.14}
 
+      iex> Z.decimal()
+      iex> |> Z.precision(2)
+      iex> |> Z.parse(Decimal.new("3.14159"))
+      {:ok, Decimal.new("3.14")}
+
   """
+  def precision(%Zot.Type.Decimal{} = type, value), do: Zot.Type.Decimal.precision(type, value)
   def precision(%Zot.Type.Float{} = type, value), do: Zot.Type.Float.precision(type, value)
 
   @doc ~S"""
