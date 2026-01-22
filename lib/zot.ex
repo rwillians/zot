@@ -684,6 +684,14 @@ defmodule Zot do
       iex> |> unwrap_issue_message()
       "must have at most 2 items, got 3"
 
+  You can enforce an exact length:
+
+      iex> Z.string()
+      iex> |> Z.list(length: 2)
+      iex> |> Z.parse(["one", "two", "three"])
+      iex> |> unwrap_issue_message()
+      "must have 2 items, got 3"
+
   It can be converted into json schema:
 
       iex> Z.string()
@@ -1497,9 +1505,10 @@ defmodule Zot do
   defdelegate leading_plus_sign(type, value), to: Zot.Type.Phone
 
   @doc ~S"""
-  Enforces that the string has the given length.
+  Enforces that the string or list has the given length.
   """
   def length(type, value, opts \\ [])
+  def length(%Zot.Type.List{} = type, value, opts), do: Zot.Type.List.length(type, value, opts)
   def length(%Zot.Type.String{} = type, value, opts), do: Zot.Type.String.length(type, value, opts)
 
   @doc ~S"""
