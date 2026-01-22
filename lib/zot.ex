@@ -1446,6 +1446,20 @@ defmodule Zot do
   defdelegate allowed_schemes(type, value, opts \\ []), to: Zot.Type.URI
 
   @doc ~S"""
+  Wraps the parsed value in a branded tuple.
+
+  ## Examples
+
+      iex> Z.string()
+      iex> |> Z.branded(:name)
+      iex> |> Z.parse("Rafael")
+      {:ok, {:name, "Rafael"}}
+
+  """
+  def branded(type(_) = type, brand) when is_atom(brand),
+    do: Zot.Type.Branded.new(brand: brand, inner_type: type)
+
+  @doc ~S"""
   Enforces that the string contains the given substring.
   """
   def contains(type, value, opts \\ [])
@@ -1686,6 +1700,20 @@ defmodule Zot do
   validation.
   """
   def trim(%Zot.Type.String{} = type, value \\ true), do: Zot.Type.String.trim(type, value)
+
+  @doc ~S"""
+  Unwraps a branded type, returning its inner type.
+
+  ## Examples
+
+      iex> Z.string()
+      iex> |> Z.branded(:name)
+      iex> |> Z.unwrap_branded()
+      iex> |> Z.parse("Rafael")
+      {:ok, "Rafael"}
+
+  """
+  def unwrap_branded(%Zot.Type.Branded{} = type), do: type.inner_type
 
   @doc ~S"""
   Enforces the UUID version for the given UUID type.
