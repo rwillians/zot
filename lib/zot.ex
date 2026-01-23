@@ -1852,6 +1852,56 @@ defmodule Zot do
   def partial_compact(type), do: partial(type, compact: true)
 
   @doc ~S"""
+  Creates a new map type with only the specified keys from the original shape.
+
+  ## Examples
+
+      iex> Z.strict_map(%{id: Z.uuid(), name: Z.string(), email: Z.email()})
+      iex> |> Z.pick([:id, :name])
+      iex> |> Z.parse(%{id: "550e8400-e29b-41d4-a716-446655440000", name: "Alice"})
+      {:ok, %{id: "550e8400-e29b-41d4-a716-446655440000", name: "Alice"}}
+
+      iex> {:error, [issue]} =
+      iex>   Z.strict_map(%{id: Z.uuid(), name: Z.string(), email: Z.email()})
+      iex>   |> Z.pick([:id, :name])
+      iex>   |> Z.parse(%{id: "550e8400-e29b-41d4-a716-446655440000", name: "Alice", email: "alice@example.com"})
+      iex>
+      iex> assert issue.path == ["email"]
+      iex> assert Exception.message(issue) == "unknown field"
+
+  """
+  def pick(%Zot.Type.Map{} = type, keys) when is_list(keys) do
+    shape = Map.take(type.shape, keys)
+
+    %{type | shape: shape}
+  end
+
+  @doc ~S"""
+  Creates a new map type excluding the specified keys from the original shape.
+
+  ## Examples
+
+      iex> Z.strict_map(%{id: Z.uuid(), name: Z.string(), email: Z.email()})
+      iex> |> Z.omit([:email])
+      iex> |> Z.parse(%{id: "550e8400-e29b-41d4-a716-446655440000", name: "Alice"})
+      {:ok, %{id: "550e8400-e29b-41d4-a716-446655440000", name: "Alice"}}
+
+      iex> {:error, [issue]} =
+      iex>   Z.strict_map(%{id: Z.uuid(), name: Z.string(), password: Z.string()})
+      iex>   |> Z.omit([:password])
+      iex>   |> Z.parse(%{id: "550e8400-e29b-41d4-a716-446655440000", name: "Alice", password: "secret"})
+      iex>
+      iex> assert issue.path == ["password"]
+      iex> assert Exception.message(issue) == "unknown field"
+
+  """
+  def omit(%Zot.Type.Map{} = type, keys) when is_list(keys) do
+    shape = Map.drop(type.shape, keys)
+
+    %{type | shape: shape}
+  end
+
+  @doc ~S"""
   Rounds the float to the given number of decimal places.
 
   ## Examples
