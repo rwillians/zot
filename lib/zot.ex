@@ -601,6 +601,138 @@ defmodule Zot do
   defdelegate float(opts \\ []), to: Zot.Type.Float, as: :new
 
   @doc ~S"""
+  Creates an IP address type.
+
+  ## Examples
+
+      iex> Z.ip()
+      iex> |> Z.parse("192.168.1.1")
+      {:ok, "192.168.1.1"}
+
+      iex> Z.ip()
+      iex> |> Z.parse("::1")
+      {:ok, "::1"}
+
+      iex> Z.ip()
+      iex> |> Z.parse("not-an-ip")
+      iex> |> unwrap_issue_message()
+      "is invalid"
+
+  You can restrict to a specific IP version:
+
+      iex> Z.ip(version: :v4)
+      iex> |> Z.parse("192.168.1.1")
+      {:ok, "192.168.1.1"}
+
+      iex> Z.ip(version: :v4)
+      iex> |> Z.parse("::1")
+      iex> |> unwrap_issue_message()
+      "must be a valid IPv4 address"
+
+      iex> Z.ip(version: :v6)
+      iex> |> Z.parse("::1")
+      {:ok, "::1"}
+
+      iex> Z.ip(version: :v6)
+      iex> |> Z.parse("192.168.1.1")
+      iex> |> unwrap_issue_message()
+      "must be a valid IPv6 address"
+
+  You can change the output format to a tuple:
+
+      iex> Z.ip(output: :tuple)
+      iex> |> Z.parse("192.168.1.1")
+      {:ok, {192, 168, 1, 1}}
+
+      iex> Z.ip(output: :tuple)
+      iex> |> Z.parse("::1")
+      {:ok, {0, 0, 0, 0, 0, 0, 0, 1}}
+
+  It supports coercion from tuples:
+
+      iex> Z.ip()
+      iex> |> Z.parse({192, 168, 1, 1}, coerce: true)
+      {:ok, "192.168.1.1"}
+
+      iex> Z.ip()
+      iex> |> Z.parse({0, 0, 0, 0, 0, 0, 0, 1}, coerce: true)
+      {:ok, "::1"}
+
+  You can validate against CIDR ranges:
+
+      iex> Z.ip()
+      iex> |> Z.cidr("192.168.0.0/16")
+      iex> |> Z.parse("192.168.1.1")
+      {:ok, "192.168.1.1"}
+
+      iex> Z.ip()
+      iex> |> Z.cidr("192.168.0.0/16")
+      iex> |> Z.parse("10.0.0.1")
+      iex> |> unwrap_issue_message()
+      "must be within CIDR range 192.168.0.0/16"
+
+  You can use predefined CIDR sets:
+
+      iex> Z.ip()
+      iex> |> Z.cidr(:private)
+      iex> |> Z.parse("192.168.1.1")
+      {:ok, "192.168.1.1"}
+
+      iex> Z.ip()
+      iex> |> Z.cidr(:private)
+      iex> |> Z.parse("8.8.8.8")
+      iex> |> unwrap_issue_message()
+      "must be a private IP address"
+
+      iex> Z.ip()
+      iex> |> Z.cidr(:loopback)
+      iex> |> Z.parse("127.0.0.1")
+      {:ok, "127.0.0.1"}
+
+      iex> Z.ip()
+      iex> |> Z.cidr(:link_local)
+      iex> |> Z.parse("169.254.1.1")
+      {:ok, "169.254.1.1"}
+
+  It can be converted into json schema:
+
+      iex> Z.ip(version: :v4)
+      iex> |> Z.describe("An IPv4 address.")
+      iex> |> Z.example("192.168.1.1")
+      iex> |> Z.json_schema()
+      %{
+        "type" => "string",
+        "format" => "ipv4",
+        "description" => "An IPv4 address.",
+        "examples" => ["192.168.1.1"]
+      }
+
+      iex> Z.ip(version: :v6)
+      iex> |> Z.describe("An IPv6 address.")
+      iex> |> Z.example("::1")
+      iex> |> Z.json_schema()
+      %{
+        "type" => "string",
+        "format" => "ipv6",
+        "description" => "An IPv6 address.",
+        "examples" => ["::1"]
+      }
+
+      iex> Z.ip()
+      iex> |> Z.describe("An IP address.")
+      iex> |> Z.json_schema()
+      %{
+        "description" => "An IP address.",
+        "oneOf" => [
+          %{"format" => "ipv4", "type" => "string"},
+          %{"format" => "ipv6", "type" => "string"}
+        ]
+      }
+
+  """
+  defdelegate ip(opts \\ []), to: Zot.Type.IP, as: :new
+
+  @doc ~S"""
   Creates a integer type.
 
   ## Examples
@@ -1551,6 +1683,13 @@ defmodule Zot do
     do: Zot.Type.Branded.new(brand: brand, inner_type: type)
 
   @doc ~S"""
+  Validates that the IP address falls within the given CIDR range(s).
+
+  See `ip/1` for more details.
+  """
+  defdelegate cidr(type, range, opts \\ []), to: Zot.Type.IP
+
+  @doc ~S"""
   Enforces that the string contains the given substring.
   """
   def contains(type, value, opts \\ [])
@@ -1631,6 +1770,15 @@ defmodule Zot do
   Sets the field as not required (nullable).
   """
   def optional(zot_type(_) = type), do: %{type | required: false}
+
+  @doc ~S"""
+  Sets the output format for the given type.
+
+  For IP types, accepts `:string` (default) or `:tuple`.
+
+  See `ip/1` for more details.
+  """
+  defdelegate output(type, value), to: Zot.Type.IP
 
   @doc ~S"""
   Makes all fields optional. Optionally drops all nil fields from the
@@ -1808,11 +1956,16 @@ defmodule Zot do
   def unbranded(%Zot.Type.Branded{} = type), do: type.inner_type
 
   @doc ~S"""
-  Enforces the UUID version for the given UUID type.
+  Enforces the version for the given type.
 
-  See `uuid/1` for more details.
+  For IP types, accepts `:any`, `:v4`, or `:v6`.
+  For UUID types, accepts `:any`, `:v1` through `:v8`.
+
+  See `ip/1` and `uuid/1` for more details.
   """
-  defdelegate version(type, value), to: Zot.Type.UUID
+  def version(type, value)
+  def version(%Zot.Type.IP{} = type, value), do: Zot.Type.IP.version(type, value)
+  def version(%Zot.Type.UUID{} = type, value), do: Zot.Type.UUID.version(type, value)
 
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
   # CALLBACKS                                                       #
