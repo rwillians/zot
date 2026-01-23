@@ -47,7 +47,7 @@ defimpl Zot.Type, for: Zot.Type.Boolean do
       "off" -> {:ok, false}
       "false" -> {:ok, false}
       "no" -> {:ok, false}
-      actual -> {:error, issue("expected a boolean-like string (%{expected}), got %{actual}", expected: {:disjunction, @boolean_like, actual: actual})}
+      actual -> {:error, [issue("expected a boolean-like string (%{expected}), got %{actual}", expected: {:disjunction, @boolean_like}, actual: actual)]}
     end
   end
   # ↓ let validate_type/2 handle it

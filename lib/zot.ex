@@ -193,6 +193,13 @@ defmodule Zot do
       iex> |> Z.parse("no", coerce: true)
       {:ok, false}
 
+  Coercion fails for non-boolean-like strings:
+
+      iex> Z.boolean()
+      iex> |> Z.parse("maybe", coerce: true)
+      iex> |> unwrap_issue_message()
+      "expected a boolean-like string ('true', 'enabled', 'on', 'yes', 'false', 'disabled', 'off' or 'no'), got 'maybe'"
+
   It can be converted into json schema:
 
       iex> Z.boolean()
