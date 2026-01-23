@@ -35,6 +35,9 @@ defmodule Zot.MixProject do
         flags: [:unmatched_returns, :error_handling, :underspecs],
         plt_core_path: "priv/plts/core",
         plt_local_path: "priv/plts/local"
+      ],
+      test_coverage: [
+        summary: [threshold: 80]
       ]
     ]
   end
