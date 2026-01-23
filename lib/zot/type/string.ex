@@ -99,11 +99,11 @@ defimpl Zot.Type, for: Zot.Type.String do
   def json_schema(%Zot.Type.String{} = type) do
     %{
       "description" => type.description,
-      "example" => type.example,
-      "maxLength" => render(type.max) || render(type.length),
-      "minLength" => render(type.min) || render(type.length),
-      "pattern" => render(type.regex),
-      "type" => json_type("string", type.required)
+      "examples" => maybe_examples(type.example),
+      "maxLength" => dump(type.max) || dump(type.length),
+      "minLength" => dump(type.min) || dump(type.length),
+      "pattern" => dump(type.regex),
+      "type" => maybe_nullable("string", type.required)
     }
   end
 

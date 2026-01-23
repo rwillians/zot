@@ -5,7 +5,7 @@ defmodule Zot.Type.Branded do
 
   use Zot.Template
 
-  deftype brand: [t: atom],
+  deftype brand:      [t: atom],
           inner_type: [t: Zot.Type.t()]
 
   def brand(%Zot.Type.Branded{} = type, value)
@@ -35,21 +35,21 @@ defimpl Zot.Type, for: Zot.Type.Branded do
            {:b, nil} <- {:b, type.inner_type.example} do
         nil
       else
-        {:a, {brand, value}} -> [[Atom.to_string(brand), value]]
-        {:b, value} -> [[Atom.to_string(type.brand), value]]
+        {:a, {brand, value}} -> [[Atom.to_string(brand), dump(value)]]
+        {:b, value} -> [[Atom.to_string(type.brand), dump(value)]]
       end
 
     %{
-      "type" => "array",
       "description" => type.description,
       "examples" => examples,
+      "items" => false,
+      "maxItems" => 2,
+      "minItems" => 2,
       "prefixItems" => [
         %{"const" => Atom.to_string(type.brand)},
         Zot.json_schema(type.inner_type)
       ],
-      "items" => false,
-      "minItems" => 2,
-      "maxItems" => 2
+      "type" => "array",
     }
   end
 end

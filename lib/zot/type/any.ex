@@ -9,6 +9,8 @@ defmodule Zot.Type.Any do
 end
 
 defimpl Zot.Type, for: Zot.Type.Any do
+  use Zot.Commons
+
   @impl Zot.Type
   def parse(%Zot.Type.Any{}, value, _),
     do: {:ok, value}
@@ -17,7 +19,7 @@ defimpl Zot.Type, for: Zot.Type.Any do
   def json_schema(%Zot.Type.Any{} = type) do
     %{
       "description" => type.description,
-      "example" => type.example
+      "examples" => maybe_examples(type.example),
     }
   end
 end

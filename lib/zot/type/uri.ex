@@ -50,9 +50,9 @@ defimpl Zot.Type, for: Zot.Type.URI do
   def json_schema(%Zot.Type.URI{} = type) do
     %{
       "description" => type.description,
-      "example" => type.example,
+      "examples" => maybe_examples(type.example),
       "format" => "uri",
-      "type" => json_type("string", type.required)
+      "type" => maybe_nullable("string", type.required)
     }
   end
 

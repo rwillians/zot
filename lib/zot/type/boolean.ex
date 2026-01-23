@@ -22,8 +22,8 @@ defimpl Zot.Type, for: Zot.Type.Boolean do
   def json_schema(%Zot.Type.Boolean{} = type) do
     %{
       "description" => type.description,
-      "example" => type.example,
-      "type" => json_type("boolean", type.required)
+      "examples" => maybe_examples(type.example),
+      "type" => maybe_nullable("boolean", type.required)
     }
   end
 

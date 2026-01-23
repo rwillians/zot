@@ -6,7 +6,7 @@ defmodule Zot.Type.Map do
   use Zot.Template
 
   deftype shape: [t: map],
-          mode: [t: :strict | :strip, default: :strip]
+          mode:  [t: :strict | :strip, default: :strip]
 
   def shape(%Zot.Type.Map{} = type, shape)
       when is_non_struct_map(shape),
@@ -31,7 +31,7 @@ defimpl Zot.Type, for: Zot.Type.Map do
     %{
       "additionalProperties" => type.mode == :strip,
       "description" => type.description,
-      "example" => type.example,
+      "examples" => maybe_examples(type.example),
       "properties" =>
         type.shape
         |> Enum.map(fn {key, t} -> {to_string(key), Zot.json_schema(t)} end)

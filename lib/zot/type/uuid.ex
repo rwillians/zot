@@ -26,9 +26,9 @@ defimpl Zot.Type, for: Zot.Type.UUID do
   def json_schema(%Zot.Type.UUID{} = type) do
     %{
       "description" => type.description,
-      "example" => type.example,
+      "examples" => maybe_examples(type.example),
       "format" => "uuid",
-      "type" => json_type("string", type.required)
+      "type" => maybe_nullable("string", type.required)
     }
   end
 

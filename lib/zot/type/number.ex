@@ -40,10 +40,10 @@ defimpl Zot.Type, for: Zot.Type.Number do
   def json_schema(%Zot.Type.Number{} = type) do
     %{
       "description" => type.description,
-      "example" => type.example,
-      "maximum" => render(type.max),
-      "minimum" => render(type.min),
-      "type" => json_type("number", type.required)
+      "examples" => maybe_examples(type.example),
+      "maximum" => dump(type.max),
+      "minimum" => dump(type.min),
+      "type" => maybe_nullable("number", type.required)
     }
   end
 

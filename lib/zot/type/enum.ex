@@ -34,9 +34,9 @@ defimpl Zot.Type, for: Zot.Type.Enum do
   def json_schema(%Zot.Type.Enum{} = type) do
     %{
       "description" => type.description,
-      "enum" => render(type.values),
-      "example" => render(type.example || List.first(type.values)),
-      "type" => json_type("string", type.required)
+      "enum" => dump(type.values),
+      "examples" => maybe_examples(type.example),
+      "type" => maybe_nullable("string", type.required)
     }
   end
 

@@ -5,8 +5,8 @@ defmodule Zot.Type.Float do
 
   use Zot.Template
 
-  deftype min: [t: Zot.Parameterized.t(number) | nil],
-          max: [t: Zot.Parameterized.t(number) | nil],
+  deftype min:       [t: Zot.Parameterized.t(number) | nil],
+          max:       [t: Zot.Parameterized.t(number) | nil],
           precision: [t: non_neg_integer | nil]
 
   @opts error: "must be at least %{expected}, got %{actual}"
@@ -47,10 +47,10 @@ defimpl Zot.Type, for: Zot.Type.Float do
   def json_schema(%Zot.Type.Float{} = type) do
     %{
       "description" => type.description,
-      "example" => type.example,
-      "maximum" => render(type.max),
-      "minimum" => render(type.min),
-      "type" => json_type("number", type.required)
+      "examples" => maybe_examples(type.example),
+      "maximum" => type.max,
+      "minimum" => type.min,
+      "type" => maybe_nullable("number", type.required)
     }
   end
 

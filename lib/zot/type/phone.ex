@@ -258,7 +258,7 @@ defmodule Zot.Type.Phone do
          |> Enum.map(& &1.code)
          |> MapSet.new()
 
-  deftype leading_plus_sign: [t: :always | :forbid | :keep | :require, default: :keep],
+  deftype leading_plus_sign:     [t: :always | :forbid | :keep | :require, default: :keep],
           allowed_country_codes: [t: Zot.Parameterized.t(MapSet.t()) | nil, default: nil]
 
   def leading_plus_sign(%Zot.Type.Phone{} = type, value)
@@ -322,12 +322,12 @@ defimpl Zot.Type, for: Zot.Type.Phone do
 
     %{
       "description" => type.description,
-      "example" => type.example,
+      "examples" => maybe_examples(type.example),
       "format" => "phone",
       "maxLength" => max,
       "minLength" => min,
-      "pattern" => render(regex),
-      "type" => json_type("string", type.required)
+      "pattern" => dump(regex),
+      "type" => maybe_nullable("string", type.required)
     }
   end
 

@@ -5,8 +5,8 @@ defmodule Zot.Type.Decimal do
 
   use Zot.Template
 
-  deftype min: [t: Zot.Parameterized.t(Decimal.t()) | nil],
-          max: [t: Zot.Parameterized.t(Decimal.t()) | nil],
+  deftype min:       [t: Zot.Parameterized.t(Decimal.t()) | nil],
+          max:       [t: Zot.Parameterized.t(Decimal.t()) | nil],
           precision: [t: non_neg_integer | nil]
 
   @opts error: "must be at least %{expected}, got %{actual}"
@@ -51,10 +51,10 @@ defimpl Zot.Type, for: Zot.Type.Decimal do
   def json_schema(%Zot.Type.Decimal{} = type) do
     %{
       "description" => type.description,
-      "example" => render(type.example),
-      "maximum" => render(type.max),
-      "minimum" => render(type.min),
-      "type" => json_type("number", type.required)
+      "examples" => maybe_examples(type.example),
+      "maximum" => dump(type.max),
+      "minimum" => dump(type.min),
+      "type" => maybe_nullable("number", type.required)
     }
   end
 

@@ -30,7 +30,7 @@ defimpl Zot.Type, for: Zot.Type.Record do
     %{
       "additionalProperties" => Zot.json_schema(type.values_type),
       "description" => type.description,
-      "example" => type.example,
+      "examples" => maybe_examples(type.example),
       "properties" => %{},
       "required" => [],
       "type" => "object"

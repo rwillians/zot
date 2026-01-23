@@ -22,8 +22,8 @@ defimpl Zot.Type, for: Zot.Type.Atom do
   def json_schema(%Zot.Type.Atom{} = type) do
     %{
       "description" => type.description,
-      "example" => render(type.example),
-      "type" => json_type("string", type.required)
+      "examples" => maybe_examples(type.example),
+      "type" => maybe_nullable("string", type.required)
     }
   end
 

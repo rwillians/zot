@@ -85,10 +85,11 @@ defimpl Zot.Type, for: Zot.Type.DiscriminatedUnion do
   @impl Zot.Type
   def json_schema(%Zot.Type.DiscriminatedUnion{} = type) do
     %{
-      "oneOf" => Enum.map(type.inner_types, &Zot.json_schema/1),
       "discriminator" => %{
         "propertyName" => to_string(type.discriminator)
-      }
+      },
+      "examples" => maybe_examples(type.example),
+      "oneOf" => Enum.map(type.inner_types, &Zot.json_schema/1),
     }
   end
 

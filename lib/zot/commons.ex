@@ -16,33 +16,42 @@ defmodule Zot.Commons do
   end
 
   @doc ~S"""
-  Renders a value to be used in error messages.
+  Renders a value to be used in JSON Schema.
   """
-  @spec render(term) :: nil | String.t() | number | boolean | list
+  @spec dump(term) :: nil | String.t() | number | boolean | list
 
-  def render(nil), do: nil
-  def render(value) when is_binary(value), do: value
-  def render(value) when is_boolean(value), do: value
-  def render(value) when is_atom(value), do: Atom.to_string(value)
-  def render(value) when is_number(value), do: value
-  def render(%Date{} = value), do: Date.to_iso8601(value)
-  def render(%DateTime{} = value), do: DateTime.to_iso8601(value)
-  def render(%Decimal{} = value), do: Decimal.to_float(value)
-  def render(%Regex{} = value), do: Regex.source(value)
-  def render(%Zot.Parameterized{} = param), do: render(param.value)
-  def render([]), do: []
-  def render([head | tail]), do: [render(head) | render(tail)]
-  def render(value), do: to_string(value)
+  def dump(nil), do: nil
+  def dump(value) when is_binary(value), do: value
+  def dump(value) when is_boolean(value), do: value
+  def dump(value) when is_atom(value), do: Atom.to_string(value)
+  def dump(value) when is_number(value), do: value
+  def dump(%Date{} = value), do: Date.to_iso8601(value)
+  def dump(%DateTime{} = value), do: DateTime.to_iso8601(value)
+  def dump(%Decimal{} = value), do: Decimal.to_float(value)
+  def dump(%Regex{} = value), do: Regex.source(value)
+  def dump(%Zot.Parameterized{} = param), do: dump(param.value)
+  def dump([]), do: []
+  def dump([head | tail]), do: [dump(head) | dump(tail)]
+  def dump(value), do: to_string(value)
 
   @doc ~S"""
-  Builds the JSON Schema "type" field, handling nullable types.
+  If an example is given, wraps it in a list. Otherwise, returns nil.
   """
-  @spec json_type(type_name, required?) :: String.t() | [String.t(), ...]
+  @spec maybe_examples(example) :: [example, ...] | nil
+        when example: term
+
+  def maybe_examples(nil), do: nil
+  def maybe_examples(example), do: [dump(example)]
+
+  @doc ~S"""
+  Return the a JSON Schema type that might be nullable.
+  """
+  @spec maybe_nullable(type_name, required?) :: String.t() | [String.t(), ...]
         when type_name: String.t(),
              required?: boolean
 
-  def json_type(type_name, true) when is_binary(type_name), do: type_name
-  def json_type(type_name, false) when is_binary(type_name), do: [type_name, "null"]
+  def maybe_nullable(type_name, true) when is_binary(type_name), do: type_name
+  def maybe_nullable(type_name, false) when is_binary(type_name), do: [type_name, "null"]
 
   @doc ~S"""
   Validates that the given value is included in the provided list of

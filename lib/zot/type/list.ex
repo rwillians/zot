@@ -53,7 +53,7 @@ defimpl Zot.Type, for: Zot.Type.List do
   def json_schema(%Zot.Type.List{} = type) do
     {min_items, max_items} =
       case type.length do
-        nil -> {render(type.min), render(type.max)}
+        nil -> {dump(type.min), dump(type.max)}
         %{value: length} -> {length, length}
       end
 
@@ -62,7 +62,7 @@ defimpl Zot.Type, for: Zot.Type.List do
       "items" => Zot.json_schema(type.inner_type),
       "maxItems" => max_items,
       "minItems" => min_items,
-      "type" => json_type("array", type.required)
+      "type" => maybe_nullable("array", type.required)
     }
   end
 

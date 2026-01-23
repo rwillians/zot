@@ -42,9 +42,9 @@ defimpl Zot.Type, for: Zot.Type.Numeric do
   def json_schema(%Zot.Type.Numeric{} = type) do
     %{
       "description" => type.description,
-      "example" => type.example,
-      "maxLength" => render(type.max),
-      "minLength" => render(type.min),
+      "examples" => maybe_examples(type.example),
+      "maxLength" => dump(type.max),
+      "minLength" => dump(type.min),
       "pattern" => "^[0-9]+$",
       "type" => "string"
     }

@@ -53,8 +53,9 @@ defimpl Zot.Type, for: Zot.Type.Literal do
   @impl Zot.Type
   def json_schema(%Zot.Type.Literal{} = type) do
     %{
-      "const" => render(type.value),
-      "description" => type.description
+      "const" => dump(type.value),
+      "description" => type.description,
+      "examples" => maybe_examples(type.example)
     }
   end
 
