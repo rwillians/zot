@@ -1800,12 +1800,12 @@ defmodule Zot do
 
       iex> Z.string()
       iex> |> Z.branded(:name)
-      iex> |> Z.unwrap_branded()
+      iex> |> Z.unbranded()
       iex> |> Z.parse("Rafael")
       {:ok, "Rafael"}
 
   """
-  def unwrap_branded(%Zot.Type.Branded{} = type), do: type.inner_type
+  def unbranded(%Zot.Type.Branded{} = type), do: type.inner_type
 
   @doc ~S"""
   Enforces the UUID version for the given UUID type.
