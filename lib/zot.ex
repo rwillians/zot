@@ -131,7 +131,7 @@ defmodule Zot do
       %{
         "type" => "string",
         "description" => "A status atom.",
-        "example" => "active"
+        "examples" => ["active"]
       }
 
   """
@@ -202,7 +202,7 @@ defmodule Zot do
       %{
         "type" => "boolean",
         "description" => "A boolean flag.",
-        "example" => true
+        "examples" => [true]
       }
 
   """
@@ -257,7 +257,7 @@ defmodule Zot do
         "type" => "string",
         "format" => "date-time",
         "description" => "A timestamp.",
-        "example" => "2026-01-10T10:23:45.123Z"
+        "examples" => ["2026-01-10T10:23:45.123Z"]
       }
 
   """
@@ -319,7 +319,7 @@ defmodule Zot do
       %{
         "type" => "number",
         "description" => "A monetary amount.",
-        "example" => 19.99,
+        "examples" => [19.99],
         "minimum" => 1.0,
         "maximum" => 100.0
       }
@@ -487,7 +487,7 @@ defmodule Zot do
         "type" => "string",
         "format" => "email",
         "description" => "A user's email address.",
-        "example" => "foo@zot.dev"
+        "examples" => ["foo@zot.dev"]
       }
 
   """
@@ -530,7 +530,7 @@ defmodule Zot do
         "type" => "string",
         "enum" => ["red", "green", "blue"],
         "description" => "A color.",
-        "example" => "green"
+        "examples" => ["green"]
       }
 
   """
@@ -592,7 +592,7 @@ defmodule Zot do
       %{
         "type" => "number",
         "description" => "A percentage.",
-        "example" => 0.425,
+        "examples" => [0.425],
         "minimum" => 0.0,
         "maximum" => 1.0
       }
@@ -650,7 +650,7 @@ defmodule Zot do
       %{
         "type" => "integer",
         "description" => "A percentage.",
-        "example" => 42,
+        "examples" => [42],
         "minimum" => 0,
         "maximum" => 100
       }
@@ -831,7 +831,7 @@ defmodule Zot do
       %{
         "type" => "object",
         "description" => "A person's profile.",
-        "example" => %{name: "Bob", age: 30},
+        "examples" => [%{"name" => "Bob", "age" => 30}],
         "properties" => %{
           "name" => %{
             "type" => "string"
@@ -916,7 +916,7 @@ defmodule Zot do
       %{
         "type" => "number",
         "description" => "A percentage.",
-        "example" => 42,
+        "examples" => [42],
         "minimum" => 0.5,
         "maximum" => 100
       }
@@ -992,7 +992,7 @@ defmodule Zot do
       %{
         "type" => "string",
         "description" => "A numeric code.",
-        "example" => "123456",
+        "examples" => ["123456"],
         "pattern" => "^[0-9]+$",
         "minLength" => 3,
         "maxLength" => 8
@@ -1051,7 +1051,7 @@ defmodule Zot do
       iex> |> Z.json_schema()
       %{
         "description" => "A phone number.",
-        "example" => "+5511987654321",
+        "examples" => ["+5511987654321"],
         "format" => "phone",
         "maxLength" => 16,
         "minLength" => 9,
@@ -1106,7 +1106,7 @@ defmodule Zot do
       %{
         "type" => "object",
         "description" => "A person's profile.",
-        "example" => %{name: "Bob", age: 30},
+        "examples" => [%{"name" => "Bob", "age" => 30}],
         "properties" => %{
           "name" => %{
             "type" => "string"
@@ -1125,6 +1125,89 @@ defmodule Zot do
       when is_non_struct_map(shape)
       when is_list(shape),
       do: Zot.Type.Map.new(mode: :strict, shape: Enum.into(shape, %{}))
+
+  @doc ~S"""
+  Creates a struct type.
+
+  It works like `strict_map/1` but converts the result to an Elixir
+  struct.
+
+  ## Examples
+
+      iex> Z.struct(ZotTest.StructUser, %{name: Z.string(), age: Z.int()})
+      iex> |> Z.parse(%{name: "Alice", age: 30})
+      {:ok, %ZotTest.StructUser{name: "Alice", age: 30}}
+
+  Also accepts keyword list for shape (like `map/1`):
+
+      iex> Z.struct(ZotTest.StructUser, name: Z.string(), age: Z.int())
+      iex> |> Z.parse(%{"name" => "Bob", "age" => 25})
+      {:ok, %ZotTest.StructUser{name: "Bob", age: 25}}
+
+  Rejects unknown fields (strict mode behavior):
+
+      iex> Z.struct(ZotTest.StructUser, %{name: Z.string(), age: Z.int()})
+      iex> |> Z.parse(%{name: "Alice", age: 30, email: "alice@example.com"})
+      iex> |> unwrap_issue_message()
+      "unknown field"
+
+  Returns validation errors for invalid field values:
+
+      iex> Z.struct(ZotTest.StructUser, %{name: Z.string(), age: Z.int(min: 18)})
+      iex> |> Z.parse(%{name: "Alice", age: 16})
+      iex> |> unwrap_issue_message()
+      "must be at least 18, got 16"
+
+  Works with coercion:
+
+      iex> Z.struct(ZotTest.StructUser, %{name: Z.string(), age: Z.int()})
+      iex> |> Z.parse(%{name: "Alice", age: "30"}, coerce: true)
+      {:ok, %ZotTest.StructUser{name: "Alice", age: 30}}
+
+  Alternatively, you can convert a map type into a struct type:DSS
+
+      iex> Z.strict_map(%{name: Z.string(), age: Z.int()})
+      iex> |> Z.struct(ZotTest.StructUser)
+      iex> |> Z.parse(%{name: "Bob", age: 25})
+      {:ok, %ZotTest.StructUser{name: "Bob", age: 25}}
+
+  It can be converted into json schema (same as strict_map):
+
+      iex> Z.struct(ZotTest.StructUser, %{name: Z.string(), age: Z.int(min: 0)})
+      iex> |> Z.describe("A user profile.")
+      iex> |> Z.json_schema()
+      %{
+        "type" => "object",
+        "description" => "A user profile.",
+        "properties" => %{
+          "name" => %{
+            "type" => "string"
+          },
+          "age" => %{
+            "type" => "integer",
+            "minimum" => 0
+          }
+        },
+        "required" => ["name", "age"],
+        "additionalProperties" => false
+      }
+
+  """
+  def struct(module, shape)
+      when is_atom(module) and is_non_struct_map(shape),
+      do: Zot.Type.Struct.new(module: module, shape: shape)
+
+  def struct(module, shape)
+      when is_atom(module) and is_list(shape),
+      do: Zot.Type.Struct.new(module: module, shape: Enum.into(shape, %{}))
+
+  def struct(%Zot.Type.Map{} = map, module) when is_atom(module) do
+    Zot.Type.Struct.new(module: module, shape: map.shape)
+    |> Map.put(:required, map.required)
+    |> default(map.default)
+    |> describe(map.description)
+    |> example(map.example)
+  end
 
   @doc ~S"""
   Creates a string type.
@@ -1247,7 +1330,7 @@ defmodule Zot do
       %{
         "type" => "string",
         "description" => "A user id.",
-        "example" => "u_12345678901234567890123456",
+        "examples" => ["u_12345678901234567890123456"],
         "minLength" => 28,
         "maxLength" => 28
       }
@@ -1429,7 +1512,7 @@ defmodule Zot do
         "type" => "string",
         "format" => "uuid",
         "description" => "A universally unique identifier.",
-        "example" => "550e8400-e29b-41d4-a716-446655440000"
+        "examples" => ["550e8400-e29b-41d4-a716-446655440000"]
       }
 
   """
@@ -1582,7 +1665,7 @@ defmodule Zot do
       %{
         "type" => "object",
         "description" => "A person's profile.",
-        "example" => %{"name" => "Bob", "age" => 18},
+        "examples" => [%{"name" => "Bob", "age" => 18}],
         "properties" => %{
           "name" => %{
             "type" => ["string", "null"]

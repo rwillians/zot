@@ -30,16 +30,19 @@ defmodule Zot.Commons do
   def dump(%Decimal{} = value), do: Decimal.to_float(value)
   def dump(%Regex{} = value), do: Regex.source(value)
   def dump(%Zot.Parameterized{} = param), do: dump(param.value)
+
+  def dump(value) when is_non_struct_map(value) do
+    for {k, v} <- value,
+        into: %{},
+        do: {to_string(k), dump(v)}
+  end
+
   def dump([]), do: []
   def dump([head | tail]), do: [dump(head) | dump(tail)]
-  def dump(value), do: to_string(value)
 
   @doc ~S"""
   If an example is given, wraps it in a list. Otherwise, returns nil.
   """
-  @spec maybe_examples(example) :: [example, ...] | nil
-        when example: term
-
   def maybe_examples(nil), do: nil
   def maybe_examples(example), do: [dump(example)]
 

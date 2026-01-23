@@ -48,8 +48,8 @@ defimpl Zot.Type, for: Zot.Type.Float do
     %{
       "description" => type.description,
       "examples" => maybe_examples(type.example),
-      "maximum" => type.max,
-      "minimum" => type.min,
+      "maximum" => dump(type.max),
+      "minimum" => dump(type.min),
       "type" => maybe_nullable("number", type.required)
     }
   end
