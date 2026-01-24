@@ -34,7 +34,7 @@ defimpl Zot.Type, for: Zot.Type.Atom do
   defp coerce(value, false), do: {:ok, value}
   defp coerce(value, _) when is_atom(value), do: {:ok, value}
   defp coerce(value, :unsafe) when is_binary(value) do
-    {:ok, String.to_atom(value)}
+    {:ok, String.to_existing_atom(value)}
   rescue
     _ -> {:ok, String.to_atom(value)}
   end
