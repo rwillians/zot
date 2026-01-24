@@ -39,6 +39,7 @@ defmodule Zot.Commons do
 
   def dump([]), do: []
   def dump([head | tail]), do: [dump(head) | dump(tail)]
+  def dump(value) when is_tuple(value), do: value |> Tuple.to_list() |> dump()
 
   @doc ~S"""
   If an example is given, wraps it in a list. Otherwise, returns nil.
@@ -66,6 +67,7 @@ defmodule Zot.Commons do
         when value: term
 
   def validate_inclusion(_, nil), do: :ok
+
   def validate_inclusion(value, %Zot.Parameterized{} = list) do
     case value in list.value do
       true -> :ok
@@ -152,6 +154,7 @@ defmodule Zot.Commons do
         when value: String.t()
 
   def validate_regex(_, nil), do: :ok
+
   def validate_regex(value, %Zot.Parameterized{} = regex) when is_binary(value) do
     case Regex.match?(regex.value, value) do
       true -> :ok

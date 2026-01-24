@@ -1478,6 +1478,66 @@ defmodule Zot do
   defdelegate string(opts \\ []), to: Zot.Type.String, as: :new
 
   @doc ~S"""
+  Creates a tuple type with a fixed number of heterogeneous elements.
+
+  ## Examples
+
+  The argument can be a list of types:
+
+      iex> Z.tuple([Z.string(), Z.int()])
+      iex> |> Z.parse({"hello", 42})
+      {:ok, {"hello", 42}}
+
+  Or a tuple of types:
+
+      iex> Z.tuple({Z.string(), Z.int()})
+      iex> |> Z.parse({"hello", 42})
+      {:ok, {"hello", 42}}
+
+  Rejects tuples with wrong number of elements:
+
+      iex> Z.tuple([Z.string(), Z.int()])
+      iex> |> Z.parse({"hello", 42, "extra"})
+      iex> |> unwrap_issue_message()
+      "expected a tuple with 2 elements, got 3"
+
+  Validates each element against its corresponding type:
+
+      iex> Z.tuple([Z.string(), Z.int()])
+      iex> |> Z.parse({"hello", "not an int"})
+      iex> |> unwrap_issue_message()
+      "expected type integer, got string"
+
+  It can be coerced from a list:
+
+      iex> Z.tuple([Z.string(), Z.int()])
+      iex> |> Z.parse(["hello", 42], coerce: true)
+      {:ok, {"hello", 42}}
+
+  It can be converted into json schema:
+
+      iex> Z.tuple([Z.string(), Z.int()])
+      iex> |> Z.describe("A name and age pair.")
+      iex> |> Z.example({"Alice", 30})
+      iex> |> Z.json_schema()
+      %{
+        "type" => "array",
+        "description" => "A name and age pair.",
+        "examples" => [["Alice", 30]],
+        "prefixItems" => [
+          %{"type" => "string"},
+          %{"type" => "integer"}
+        ],
+        "items" => false,
+        "minItems" => 2,
+        "maxItems" => 2
+      }
+
+  """
+  def tuple(types) when is_list(types), do: Zot.Type.Tuple.new(shape: types)
+  def tuple(types) when is_tuple(types), do: Zot.Type.Tuple.new(shape: Tuple.to_list(types))
+
+  @doc ~S"""
   Creates a union of two or more types.
 
   ## Examples

@@ -110,14 +110,15 @@ defmodule Zot.Issue do
   defp render({:disjunction, values}), do: render_list(disjunction: values)
   defp render(%DateTime{} = value), do: DateTime.to_iso8601(value)
   defp render(%Regex{} = value), do: "/#{value.source}/"
+  defp render(value) when is_tuple(value), do: inspect(value)
   defp render(value), do: to_string(value)
 
   defp render_list([{type, [head]}])
-      when type in [:conjunction, :disjunction],
-      do: render(head)
+       when type in [:conjunction, :disjunction],
+       do: render(head)
 
   defp render_list([{type, [_, _ | _] = list}])
-      when type in [:conjunction, :disjunction] do
+       when type in [:conjunction, :disjunction] do
     [last, second_last | rest] =
       list
       |> Enum.map(&render/1)

@@ -2,6 +2,19 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Formatting
+
+ALWAYS run `mix format` on specific files rather than the entire codebase. Use `mix format <FILE...>` instead of just `mix format`.
+
+IMPORTANT: `mix format` will remove the special formatting used on `deftype` macro calls. After running the formatter, you must manually restore the special formatting. The `deftype` macro should be formatted with aligned columns like this:
+
+```elixir
+deftype inner_types: [t: [Zot.Type.t(), ...]],
+        length:      [t: Zot.Parameterized.t(pos_integer) | nil],
+        min:         [t: Zot.Parameterized.t(non_neg_integer) | nil],
+        max:         [t: Zot.Parameterized.t(pos_integer) | nil]
+```
+
 ## Build Commands
 
 ```bash
