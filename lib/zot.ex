@@ -608,6 +608,106 @@ defmodule Zot do
   defdelegate float(opts \\ []), to: Zot.Type.Float, as: :new
 
   @doc ~S"""
+  Creates a CIDR notation type for IPv4 or IPv6 network addresses.
+
+  ## Examples
+
+      iex> Z.cidr()
+      iex> |> Z.parse("192.168.0.0/24")
+      {:ok, "192.168.0.0/24"}
+
+      iex> Z.cidr()
+      iex> |> Z.parse("2001:db8::/32")
+      {:ok, "2001:db8::/32"}
+
+      iex> Z.cidr()
+      iex> |> Z.parse("not-a-cidr")
+      iex> |> unwrap_issue_message()
+      "is invalid"
+
+  You can restrict to a specific IP version:
+
+      iex> Z.cidr(version: :v4)
+      iex> |> Z.parse("192.168.0.0/24")
+      {:ok, "192.168.0.0/24"}
+
+      iex> Z.cidr(version: :v4)
+      iex> |> Z.parse("2001:db8::/32")
+      iex> |> unwrap_issue_message()
+      "must be a valid IPv4 CIDR"
+
+      iex> Z.cidr(version: :v6)
+      iex> |> Z.parse("2001:db8::/32")
+      {:ok, "2001:db8::/32"}
+
+      iex> Z.cidr(version: :v6)
+      iex> |> Z.parse("192.168.0.0/24")
+      iex> |> unwrap_issue_message()
+      "must be a valid IPv6 CIDR"
+
+  You can change the output format:
+
+      iex> Z.cidr(output: :tuple)
+      iex> |> Z.parse("192.168.1.0/24")
+      {:ok, {{192, 168, 1, 0}, {192, 168, 1, 255}, 24}}
+
+      iex> Z.cidr(output: :map)
+      iex> |> Z.parse("192.168.1.0/24")
+      {:ok, %{start: {192, 168, 1, 0}, end: {192, 168, 1, 255}, prefix: 24}}
+
+  Non-canonical CIDR notation (where the IP is not the network address)
+  is rejected by default:
+
+      iex> Z.cidr()
+      iex> |> Z.parse("192.168.1.100/24")
+      iex> |> unwrap_issue_message()
+      "must be in canonical form (network address), got '192.168.1.100/24'"
+
+  You can enable automatic canonicalization:
+
+      iex> Z.cidr(canonicalize: true)
+      iex> |> Z.parse("192.168.1.100/24")
+      {:ok, "192.168.1.0/24"}
+
+  You can enforce minimum and maximum prefix lengths:
+
+      iex> Z.cidr(min_prefix: 16)
+      iex> |> Z.parse("10.0.0.0/8")
+      iex> |> unwrap_issue_message()
+      "prefix length must be at least 16, got 8"
+
+      iex> Z.cidr(max_prefix: 24)
+      iex> |> Z.parse("10.0.0.0/28")
+      iex> |> unwrap_issue_message()
+      "prefix length must be at most 24, got 28"
+
+  It supports coercion from tuples and maps:
+
+      iex> Z.cidr()
+      iex> |> Z.parse({{192, 168, 0, 0}, 24}, coerce: true)
+      {:ok, "192.168.0.0/24"}
+
+      iex> Z.cidr()
+      iex> |> Z.parse(%{ip: {192, 168, 0, 0}, prefix: 24}, coerce: true)
+      {:ok, "192.168.0.0/24"}
+
+  It can be converted into json schema:
+
+      iex> Z.cidr(version: :v4)
+      iex> |> Z.describe("An IPv4 network.")
+      iex> |> Z.example("192.168.0.0/24")
+      iex> |> Z.json_schema()
+      %{
+        "type" => "string",
+        "pattern" => "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/(?:3[0-2]|[12]?[0-9])$",
+        "description" => "An IPv4 network.",
+        "examples" => ["192.168.0.0/24"]
+      }
+
+  """
+  defdelegate cidr(opts \\ []), to: Zot.Type.CIDR, as: :new
+
+  @doc ~S"""
   Creates an IP address type.
 
   ## Examples
@@ -1750,6 +1850,16 @@ defmodule Zot do
     do: Zot.Type.Branded.new(brand: brand, inner_type: type)
 
   @doc ~S"""
+  Enables automatic canonicalization for CIDR notation.
+
+  When enabled, non-canonical CIDR notation (where the IP is not the
+  network address) is automatically converted to canonical form.
+
+  See `cidr/1` for more details.
+  """
+  defdelegate canonicalize(type, value), to: Zot.Type.CIDR
+
+  @doc ~S"""
   Validates that the IP address falls within the given CIDR range(s).
 
   See `ip/1` for more details.
@@ -1834,6 +1944,20 @@ defmodule Zot do
   def min(%Zot.Type.String{} = type, value, opts), do: Zot.Type.String.min(type, value, opts)
 
   @doc ~S"""
+  Enforces a minimum prefix length for CIDR notation.
+
+  See `cidr/1` for more details.
+  """
+  defdelegate min_prefix(type, value, opts \\ []), to: Zot.Type.CIDR
+
+  @doc ~S"""
+  Enforces a maximum prefix length for CIDR notation.
+
+  See `cidr/1` for more details.
+  """
+  defdelegate max_prefix(type, value, opts \\ []), to: Zot.Type.CIDR
+
+  @doc ~S"""
   Sets the field as not required (nullable).
   """
   def optional(zot_type(_) = type), do: %{type | required: false}
@@ -1842,10 +1966,13 @@ defmodule Zot do
   Sets the output format for the given type.
 
   For IP types, accepts `:string` (default) or `:tuple`.
+  For CIDR types, accepts `:string` (default), `:tuple`, or `:map`.
 
-  See `ip/1` for more details.
+  See `ip/1` and `cidr/1` for more details.
   """
-  defdelegate output(type, value), to: Zot.Type.IP
+  def output(type, value)
+  def output(%Zot.Type.CIDR{} = type, value), do: Zot.Type.CIDR.output(type, value)
+  def output(%Zot.Type.IP{} = type, value), do: Zot.Type.IP.output(type, value)
 
   @doc ~S"""
   Makes all fields optional. Optionally drops all nil fields from the
@@ -2075,12 +2202,14 @@ defmodule Zot do
   @doc ~S"""
   Enforces the version for the given type.
 
+  For CIDR types, accepts `:any`, `:v4`, or `:v6`.
   For IP types, accepts `:any`, `:v4`, or `:v6`.
   For UUID types, accepts `:any`, `:v1` through `:v8`.
 
-  See `ip/1` and `uuid/1` for more details.
+  See `cidr/1`, `ip/1` and `uuid/1` for more details.
   """
   def version(type, value)
+  def version(%Zot.Type.CIDR{} = type, value), do: Zot.Type.CIDR.version(type, value)
   def version(%Zot.Type.IP{} = type, value), do: Zot.Type.IP.version(type, value)
   def version(%Zot.Type.UUID{} = type, value), do: Zot.Type.UUID.version(type, value)
 
