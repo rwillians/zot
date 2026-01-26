@@ -83,7 +83,7 @@ defimpl Zot.Type, for: Zot.Type.CIDR do
     case type.version do
       :v4 -> Map.merge(ipv4, details)
       :v6 -> Map.merge(ipv6, details)
-      :any -> Map.merge(%{"oneOf" => [ipv4, ipv6]}, details)
+      :any -> Map.merge(%{"anyOf" => [ipv4, ipv6]}, details)
     end
   end
 
