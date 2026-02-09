@@ -70,12 +70,14 @@ defmodule Zot.Issue do
   """
   @spec pretty_print([t, ...]) :: String.t()
 
-  def pretty_print([_ | _] = issues) do
+  def pretty_print([_ | _] = issues, opts \\ []) when is_list(opts) do
+    colors? = Keyword.get(opts, :colors, true)
+
     summary =
       issues
       |> summarize()
       |> Enum.map(fn {path, messages} -> {path, Enum.join(messages, ", ")} end)
-      |> Enum.map(fn {path, message} -> "  * Field `#{hl(path)}` #{message};" end)
+      |> Enum.map(fn {path, message} -> "  * Field `#{mh(path, colors?)}` #{message};" end)
       |> Enum.join("\n")
 
     """
@@ -85,10 +87,10 @@ defmodule Zot.Issue do
   end
 
   @doc ~S"""
-  Summarizes a list of issues into a map of paths (dot-notated) to
-  messages.
+  Summarizes a list of issues into a map of field path (dot-notated)
+  to its messages.
   """
-  @spec summarize([t, ...]) :: %{optional([segment]) => [String.t(), ...]}
+  @spec summarize([t, ...]) :: %{optional(String.t()) => [String.t(), ...]}
 
   def summarize([_ | _] = issues), do: Enum.group_by(issues, &dn(&1.path), &message/1)
 
@@ -97,10 +99,11 @@ defmodule Zot.Issue do
   #
 
   # [d]ot-[n]otated
-  defp dn(segments), do: segments |> Enum.map(&to_string/1) |> Enum.join(".")
+  defp dn(segments), do: segments |> Enum.map_join(".", &to_string/1)
 
-  # [h]igh[l]ighted
-  defp hl(str), do: IO.ANSI.red() <> IO.ANSI.underline() <> str <> IO.ANSI.reset()
+  # [m]aybe [h]ighlighted
+  defp mh(str, true), do: IO.ANSI.red() <> IO.ANSI.underline() <> str <> IO.ANSI.reset()
+  defp mh(str, false), do: str
 
   defp render(value)
   defp render(nil), do: "null"

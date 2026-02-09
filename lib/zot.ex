@@ -69,8 +69,8 @@ defmodule Zot do
   @doc ~S"""
   Renders a list of issues into a pretty-printed string for display.
 
-  The output includes ANSI escape codes for highlighting. To get a
-  plain text version, strip the escape codes with a regex.
+  By default, the output includes ANSI escape codes for highlighting.
+  You can disable that by setting the option `:colors` to `false`.
 
   ## Examples
 
@@ -78,11 +78,11 @@ defmodule Zot do
       iex>   Z.map(%{age: Z.int(min: 18)})
       iex>   |> Z.parse(%{age: 16})
       iex>
-      iex> Z.pretty_print(issues) |> String.replace(~r/\e\[[0-9;]*m/, "")
+      iex> Z.pretty_print(issues, colors: false)
       "One or more fields failed validation:\n  * Field `age` must be at least 18, got 16;\n"
 
   """
-  defdelegate pretty_print(issues), to: Zot.Issue
+  defdelegate pretty_print(issues, opts \\ []), to: Zot.Issue
 
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
   # TYPES                                                           #
