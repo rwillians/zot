@@ -199,14 +199,14 @@ defmodule Zot.IssueTest do
     end
   end
 
-  describe "prettyprint/1" do
+  describe "pretty_print/1" do
     test "formats issues with paths and messages" do
       issues = [
         Issue.issue([:user, :name], "is required"),
         Issue.issue([:user, :email], "is invalid")
       ]
 
-      output = Issue.prettyprint(issues)
+      output = Issue.pretty_print(issues)
 
       assert output =~ "One or more fields failed validation:"
       assert output =~ "user.name"
@@ -221,7 +221,7 @@ defmodule Zot.IssueTest do
         Issue.issue([:email], "must contain @")
       ]
 
-      output = Issue.prettyprint(issues)
+      output = Issue.pretty_print(issues)
 
       assert output =~ "is invalid, must contain @"
     end

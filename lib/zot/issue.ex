@@ -68,9 +68,9 @@ defmodule Zot.Issue do
   @doc ~S"""
   Renders a list of issues into a pretty-printed string.
   """
-  @spec prettyprint([t, ...]) :: String.t()
+  @spec pretty_print([t, ...]) :: String.t()
 
-  def prettyprint([_ | _] = issues) do
+  def pretty_print([_ | _] = issues) do
     summary =
       issues
       |> summarize()
