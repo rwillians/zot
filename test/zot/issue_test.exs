@@ -193,8 +193,8 @@ defmodule Zot.IssueTest do
       summary = Issue.summarize(issues)
 
       assert summary == %{
-               [:user, :name] => ["is required"],
-               [:user, :email] => ["is invalid", "must contain @"]
+               "user.name" => ["is required"],
+               "user.email" => ["is invalid", "must contain @"]
              }
     end
   end

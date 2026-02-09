@@ -40,6 +40,50 @@ defmodule Zot do
     |> Enum.into(%{})
   end
 
+  @doc ~S"""
+  Summarizes a list of issues into a map of paths (dot-notated) to
+  messages.
+
+  ## Examples
+
+      iex> {:error, issues} =
+      iex>   Z.map(%{user: Z.map(%{name: Z.string(), age: Z.int(min: 18)})})
+      iex>   |> Z.parse(%{user: %{name: 123, age: 16}})
+      iex>
+      iex> Z.summarize(issues)
+      %{
+        "user.name" => ["expected type string, got integer"],
+        "user.age" => ["must be at least 18, got 16"]
+      }
+
+      iex> {:error, issues} =
+      iex>   Z.map(%{email: Z.email()})
+      iex>   |> Z.parse(%{email: "invalid"})
+      iex>
+      iex> Z.summarize(issues)
+      %{"email" => ["is invalid"]}
+
+  """
+  defdelegate summarize(issues), to: Zot.Issue
+
+  @doc ~S"""
+  Renders a list of issues into a pretty-printed string for display.
+
+  The output includes ANSI escape codes for highlighting. To get a
+  plain text version, strip the escape codes with a regex.
+
+  ## Examples
+
+      iex> {:error, issues} =
+      iex>   Z.map(%{age: Z.int(min: 18)})
+      iex>   |> Z.parse(%{age: 16})
+      iex>
+      iex> Z.pretty_print(issues) |> String.replace(~r/\e\[[0-9;]*m/, "")
+      "One or more fields failed validation:\n  * Field `age` must be at least 18, got 16;\n"
+
+  """
+  defdelegate pretty_print(issues), to: Zot.Issue
+
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
   # TYPES                                                           #
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #

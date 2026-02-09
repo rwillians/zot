@@ -74,7 +74,7 @@ defmodule Zot.Issue do
     summary =
       issues
       |> summarize()
-      |> Enum.map(fn {path, messages} -> {dn(path), Enum.join(messages, ", ")} end)
+      |> Enum.map(fn {path, messages} -> {path, Enum.join(messages, ", ")} end)
       |> Enum.map(fn {path, message} -> "  * Field `#{hl(path)}` #{message};" end)
       |> Enum.join("\n")
 
@@ -90,7 +90,7 @@ defmodule Zot.Issue do
   """
   @spec summarize([t, ...]) :: %{optional([segment]) => [String.t(), ...]}
 
-  def summarize([_ | _] = issues), do: Enum.group_by(issues, & dn(&1.path), &message/1)
+  def summarize([_ | _] = issues), do: Enum.group_by(issues, &dn(&1.path), &message/1)
 
   #
   #   PRIVATE
