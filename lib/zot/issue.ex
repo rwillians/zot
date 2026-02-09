@@ -74,8 +74,8 @@ defmodule Zot.Issue do
     summary =
       issues
       |> summarize()
-      |> Enum.map(fn {path, messages} -> {dotnotated(path), Enum.join(messages, ", ")} end)
-      |> Enum.map(fn {path, message} -> "  * Field `#{highlighted(path)}` #{message};" end)
+      |> Enum.map(fn {path, messages} -> {dn(path), Enum.join(messages, ", ")} end)
+      |> Enum.map(fn {path, message} -> "  * Field `#{hl(path)}` #{message};" end)
       |> Enum.join("\n")
 
     """
@@ -85,19 +85,22 @@ defmodule Zot.Issue do
   end
 
   @doc ~S"""
-  Summarizes a list of issues into a map of paths to messages.
+  Summarizes a list of issues into a map of paths (dot-notated) to
+  messages.
   """
   @spec summarize([t, ...]) :: %{optional([segment]) => [String.t(), ...]}
 
-  def summarize([_ | _] = issues), do: Enum.group_by(issues, & &1.path, &message/1)
+  def summarize([_ | _] = issues), do: Enum.group_by(issues, & dn(&1.path), &message/1)
 
   #
   #   PRIVATE
   #
 
-  defp dotnotated(segments), do: segments |> Enum.map(&to_string/1) |> Enum.join(".")
+  # [d]ot-[n]otated
+  defp dn(segments), do: segments |> Enum.map(&to_string/1) |> Enum.join(".")
 
-  defp highlighted(str), do: IO.ANSI.red() <> IO.ANSI.underline() <> str <> IO.ANSI.reset()
+  # [h]igh[l]ighted
+  defp hl(str), do: IO.ANSI.red() <> IO.ANSI.underline() <> str <> IO.ANSI.reset()
 
   defp render(value)
   defp render(nil), do: "null"
