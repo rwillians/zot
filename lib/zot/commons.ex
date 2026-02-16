@@ -178,6 +178,22 @@ defmodule Zot.Commons do
     end
   end
 
+  @doc ~S"""
+  Validates the given value using a custom parameterized function.
+  """
+  @spec validate_with(value, validator | nil) :: :ok | {:error, [Zot.Issue.t(), ...]}
+        when value: term,
+             validator: Zot.Parameterized.t((term -> boolean))
+
+  def validate_with(_, nil), do: :ok
+
+  def validate_with(value, %Zot.Parameterized{value: fun} = validator) when is_function(fun, 1) do
+    case fun.(value) do
+      true -> :ok
+      false -> {:error, [issue(validator.params.error, actual: value)]}
+    end
+  end
+
   #
   #   PRIVATE
   #
