@@ -47,7 +47,7 @@ defmodule Zot do
   ## Examples
 
       iex> {:error, issues} =
-      iex>   Z.map(%{user: Z.map(%{name: Z.string(), age: Z.int(min: 18)})})
+      iex>   Z.map(%{user: Z.map(%{name: Z.string(), age: Z.integer(min: 18)})})
       iex>   |> Z.parse(%{user: %{name: 123, age: 16}})
       iex>
       iex> Z.summarize(issues)
@@ -75,7 +75,7 @@ defmodule Zot do
   ## Examples
 
       iex> {:error, issues} =
-      iex>   Z.map(%{age: Z.int(min: 18)})
+      iex>   Z.map(%{age: Z.integer(min: 18)})
       iex>   |> Z.parse(%{age: 16})
       iex>
       iex> Z.pretty_print(issues, colors: false)
@@ -451,7 +451,7 @@ defmodule Zot do
   ArgumentError when inner types are not map types:
 
       iex> try do
-      iex>   Z.discriminated_union(:type, [Z.string(), Z.int()])
+      iex>   Z.discriminated_union(:type, [Z.string(), Z.integer()])
       iex> rescue
       iex>   e in ArgumentError -> e.message
       iex> end
@@ -462,7 +462,7 @@ defmodule Zot do
       iex> try do
       iex>   Z.discriminated_union(:type, [
       iex>     Z.map(%{type: Z.string(), name: Z.string()}),
-      iex>     Z.map(%{type: Z.string(), age: Z.int()})
+      iex>     Z.map(%{type: Z.string(), age: Z.integer()})
       iex>   ])
       iex> rescue
       iex>   e in ArgumentError -> e.message
@@ -757,6 +757,69 @@ defmodule Zot do
   defdelegate cidr(opts \\ []), to: Zot.Type.CIDR, as: :new
 
   @doc ~S"""
+  Alias to `integer/1`.
+  """
+  defdelegate int(opts \\ []), to: Zot.Type.Integer, as: :new
+
+  @doc ~S"""
+  Creates a integer type.
+
+  ## Examples
+
+      iex> Z.integer()
+      iex> |> Z.parse(42)
+      {:ok, 42}
+
+  You can enforce a minimum value:
+
+      iex> Z.integer(min: 18)
+      iex> |> Z.parse(16)
+      iex> |> unwrap_issue_message()
+      "must be at least 18, got 16"
+
+  You can enforce a maximum value:
+
+      iex> Z.integer(max: 18)
+      iex> |> Z.parse(33)
+      iex> |> unwrap_issue_message()
+      "must be at most 18, got 33"
+
+  It can be coerced from an float (rounded):
+
+      iex> Z.integer()
+      iex> |> Z.parse(3.14, coerce: true)
+      {:ok, 3}
+
+  It can be coerced from Decimal (rounded):
+
+      iex> Z.integer()
+      iex> |> Z.parse(Decimal.new("3.14"), coerce: true)
+      {:ok, 3}
+
+  It can be coerced from a string:
+
+      iex> Z.integer()
+      iex> |> Z.parse("42", coerce: true)
+      {:ok, 42}
+
+  It can be converted into json schema:
+
+      iex> Z.integer(min: 0, max: 100)
+      iex> |> Z.describe("A percentage.")
+      iex> |> Z.example(42)
+      iex> |> Z.json_schema()
+      %{
+        "type" => "integer",
+        "description" => "A percentage.",
+        "examples" => [42],
+        "minimum" => 0,
+        "maximum" => 100
+      }
+
+  """
+  defdelegate integer(opts \\ []), to: Zot.Type.Integer, as: :new
+
+  @doc ~S"""
   Creates an IP address type.
 
   ## Examples
@@ -887,64 +950,6 @@ defmodule Zot do
 
   """
   defdelegate ip(opts \\ []), to: Zot.Type.IP, as: :new
-
-  @doc ~S"""
-  Creates a integer type.
-
-  ## Examples
-
-      iex> Z.int()
-      iex> |> Z.parse(42)
-      {:ok, 42}
-
-  You can enforce a minimum value:
-
-      iex> Z.int(min: 18)
-      iex> |> Z.parse(16)
-      iex> |> unwrap_issue_message()
-      "must be at least 18, got 16"
-
-  You can enforce a maximum value:
-
-      iex> Z.int(max: 18)
-      iex> |> Z.parse(33)
-      iex> |> unwrap_issue_message()
-      "must be at most 18, got 33"
-
-  It can be coerced from an float (rounded):
-
-      iex> Z.int()
-      iex> |> Z.parse(3.14, coerce: true)
-      {:ok, 3}
-
-  It can be coerced from Decimal (rounded):
-
-      iex> Z.int()
-      iex> |> Z.parse(Decimal.new("3.14"), coerce: true)
-      {:ok, 3}
-
-  It can be coerced from a string:
-
-      iex> Z.int()
-      iex> |> Z.parse("42", coerce: true)
-      {:ok, 42}
-
-  It can be converted into json schema:
-
-      iex> Z.int(min: 0, max: 100)
-      iex> |> Z.describe("A percentage.")
-      iex> |> Z.example(42)
-      iex> |> Z.json_schema()
-      %{
-        "type" => "integer",
-        "description" => "A percentage.",
-        "examples" => [42],
-        "minimum" => 0,
-        "maximum" => 100
-      }
-
-  """
-  defdelegate int(opts \\ []), to: Zot.Type.Integer, as: :new
 
   @doc ~S"""
   Creates a list type.
@@ -1099,12 +1104,12 @@ defmodule Zot do
 
   ## Examples
 
-      iex> Z.map(%{name: Z.string(), age: Z.int(min: 18)})
+      iex> Z.map(%{name: Z.string(), age: Z.integer(min: 18)})
       iex> |> Z.parse(%{name: "Alice", age: 18, email: "alice@wonder.land"})
       {:ok, %{name: "Alice", age: 18}}
 
       iex> {:error, [issue]} =
-      iex>   Z.map(%{name: Z.string(), age: Z.int(min: 18)})
+      iex>   Z.map(%{name: Z.string(), age: Z.integer(min: 18)})
       iex>   |> Z.parse(%{name: "Alice", age: 16, email: "alice@wonder.land"})
       iex>
       iex> assert issue.path == [:age]
@@ -1112,7 +1117,7 @@ defmodule Zot do
 
   It can be converted into json schema:
 
-      iex> Z.map(%{name: Z.string(), age: Z.int(min: 0)})
+      iex> Z.map(%{name: Z.string(), age: Z.integer(min: 0)})
       iex> |> Z.describe("A person's profile.")
       iex> |> Z.example(%{name: "Bob", age: 30})
       iex> |> Z.json_schema()
@@ -1152,19 +1157,19 @@ defmodule Zot do
   ## Examples
 
       iex> map1 = Z.map(%{name: Z.string()})
-      iex> map2 = Z.map(%{age: Z.int()})
+      iex> map2 = Z.map(%{age: Z.integer()})
       iex> Z.merge(map1, map2)
       iex> |> Z.parse(%{name: "Alice", age: 30})
       {:ok, %{name: "Alice", age: 30}}
 
       iex> map1 = Z.map(%{name: Z.string()})
-      iex> map2 = Z.map(%{name: Z.int()})
+      iex> map2 = Z.map(%{name: Z.integer()})
       iex> Z.merge(map1, map2)
       iex> |> Z.parse(%{name: 42})
       {:ok, %{name: 42}}
 
       iex> map1 = Z.strict_map(%{name: Z.string()})
-      iex> map2 = Z.map(%{age: Z.int()})
+      iex> map2 = Z.map(%{age: Z.integer()})
       iex> Z.merge(map1, map2)
       iex> |> Z.parse(%{name: "Alice", age: 30, extra: "field"})
       iex> |> unwrap_issue_message()
@@ -1355,7 +1360,7 @@ defmodule Zot do
 
   ## Examples
 
-      iex> Z.record(Z.int())
+      iex> Z.record(Z.integer())
       iex> |> Z.parse(%{"a" => 1, "b" => 2})
       {:ok, %{"a" => 1, "b" => 2}}
 
@@ -1374,12 +1379,12 @@ defmodule Zot do
 
   ## Examples
 
-      iex> Z.strict_map(%{name: Z.string(), age: Z.int(min: 18)})
+      iex> Z.strict_map(%{name: Z.string(), age: Z.integer(min: 18)})
       iex> |> Z.parse(%{name: "Alice", age: 18})
       {:ok, %{name: "Alice", age: 18}}
 
       iex> {:error, [issue]} =
-      iex>   Z.strict_map(%{name: Z.string(), age: Z.int(min: 18)})
+      iex>   Z.strict_map(%{name: Z.string(), age: Z.integer(min: 18)})
       iex>   |> Z.parse(%{name: "Alice", age: 18, email: "alice@wonder.land"})
       iex>
       iex> assert issue.path == ["email"]
@@ -1387,7 +1392,7 @@ defmodule Zot do
 
   It can be converted into json schema:
 
-      iex> Z.strict_map(%{name: Z.string(), age: Z.int(min: 0)})
+      iex> Z.strict_map(%{name: Z.string(), age: Z.integer(min: 0)})
       iex> |> Z.describe("A person's profile.")
       iex> |> Z.example(%{name: "Bob", age: 30})
       iex> |> Z.json_schema()
@@ -1422,46 +1427,46 @@ defmodule Zot do
 
   ## Examples
 
-      iex> Z.struct(ZotTest.StructUser, %{name: Z.string(), age: Z.int()})
+      iex> Z.struct(ZotTest.StructUser, %{name: Z.string(), age: Z.integer()})
       iex> |> Z.parse(%{name: "Alice", age: 30})
       {:ok, %ZotTest.StructUser{name: "Alice", age: 30}}
 
   Also accepts keyword list for shape (like `map/1`):
 
-      iex> Z.struct(ZotTest.StructUser, name: Z.string(), age: Z.int())
+      iex> Z.struct(ZotTest.StructUser, name: Z.string(), age: Z.integer())
       iex> |> Z.parse(%{"name" => "Bob", "age" => 25})
       {:ok, %ZotTest.StructUser{name: "Bob", age: 25}}
 
   Rejects unknown fields (strict mode behavior):
 
-      iex> Z.struct(ZotTest.StructUser, %{name: Z.string(), age: Z.int()})
+      iex> Z.struct(ZotTest.StructUser, %{name: Z.string(), age: Z.integer()})
       iex> |> Z.parse(%{name: "Alice", age: 30, email: "alice@example.com"})
       iex> |> unwrap_issue_message()
       "unknown field"
 
   Returns validation errors for invalid field values:
 
-      iex> Z.struct(ZotTest.StructUser, %{name: Z.string(), age: Z.int(min: 18)})
+      iex> Z.struct(ZotTest.StructUser, %{name: Z.string(), age: Z.integer(min: 18)})
       iex> |> Z.parse(%{name: "Alice", age: 16})
       iex> |> unwrap_issue_message()
       "must be at least 18, got 16"
 
   Works with coercion:
 
-      iex> Z.struct(ZotTest.StructUser, %{name: Z.string(), age: Z.int()})
+      iex> Z.struct(ZotTest.StructUser, %{name: Z.string(), age: Z.integer()})
       iex> |> Z.parse(%{name: "Alice", age: "30"}, coerce: true)
       {:ok, %ZotTest.StructUser{name: "Alice", age: 30}}
 
   Alternatively, you can convert a map type into a struct type:DSS
 
-      iex> Z.strict_map(%{name: Z.string(), age: Z.int()})
+      iex> Z.strict_map(%{name: Z.string(), age: Z.integer()})
       iex> |> Z.struct(ZotTest.StructUser)
       iex> |> Z.parse(%{name: "Bob", age: 25})
       {:ok, %ZotTest.StructUser{name: "Bob", age: 25}}
 
   It can be converted into json schema (same as strict_map):
 
-      iex> Z.struct(ZotTest.StructUser, %{name: Z.string(), age: Z.int(min: 0)})
+      iex> Z.struct(ZotTest.StructUser, %{name: Z.string(), age: Z.integer(min: 0)})
       iex> |> Z.describe("A user profile.")
       iex> |> Z.json_schema()
       %{
@@ -1633,39 +1638,39 @@ defmodule Zot do
 
   The argument can be a list of types:
 
-      iex> Z.tuple([Z.string(), Z.int()])
+      iex> Z.tuple([Z.string(), Z.integer()])
       iex> |> Z.parse({"hello", 42})
       {:ok, {"hello", 42}}
 
   Or a tuple of types:
 
-      iex> Z.tuple({Z.string(), Z.int()})
+      iex> Z.tuple({Z.string(), Z.integer()})
       iex> |> Z.parse({"hello", 42})
       {:ok, {"hello", 42}}
 
   Rejects tuples with wrong number of elements:
 
-      iex> Z.tuple([Z.string(), Z.int()])
+      iex> Z.tuple([Z.string(), Z.integer()])
       iex> |> Z.parse({"hello", 42, "extra"})
       iex> |> unwrap_issue_message()
       "expected a tuple with 2 elements, got 3"
 
   Validates each element against its corresponding type:
 
-      iex> Z.tuple([Z.string(), Z.int()])
+      iex> Z.tuple([Z.string(), Z.integer()])
       iex> |> Z.parse({"hello", "not an int"})
       iex> |> unwrap_issue_message()
       "expected type integer, got string"
 
   It can be coerced from a list:
 
-      iex> Z.tuple([Z.string(), Z.int()])
+      iex> Z.tuple([Z.string(), Z.integer()])
       iex> |> Z.parse(["hello", 42], coerce: true)
       {:ok, {"hello", 42}}
 
   It can be converted into json schema:
 
-      iex> Z.tuple([Z.string(), Z.int()])
+      iex> Z.tuple([Z.string(), Z.integer()])
       iex> |> Z.describe("A name and age pair.")
       iex> |> Z.example({"Alice", 30})
       iex> |> Z.json_schema()
@@ -1691,17 +1696,17 @@ defmodule Zot do
 
   ## Examples
 
-      iex> Z.union([Z.string(), Z.int()])
+      iex> Z.union([Z.string(), Z.integer()])
       iex> |> Z.parse("hello")
       {:ok, "hello"}
 
-      iex> Z.union([Z.string(), Z.int()])
+      iex> Z.union([Z.string(), Z.integer()])
       iex> |> Z.parse(42)
       {:ok, 42}
 
   Beware that only one of the types will have its error reported:
 
-      iex> Z.union([Z.string(), Z.int()])
+      iex> Z.union([Z.string(), Z.integer()])
       iex> |> Z.parse(3.14)
       iex> |> unwrap_issue_message()
       "expected type integer, got float"
@@ -1711,7 +1716,7 @@ defmodule Zot do
 
   It can be converted into json schema:
 
-      iex> Z.union([Z.string(), Z.int()])
+      iex> Z.union([Z.string(), Z.integer()])
       iex> |> Z.json_schema()
       %{
         "anyOf" => [
@@ -2029,26 +2034,26 @@ defmodule Zot do
 
   ## Examples
 
-      iex> Z.strict_map(%{name: Z.string(), age: Z.int()})
+      iex> Z.strict_map(%{name: Z.string(), age: Z.integer()})
       iex> |> Z.partial()
       iex> |> Z.parse(%{name: "Alice"})
       {:ok, %{name: "Alice", age: nil}}
 
-      iex> Z.strict_map(%{name: Z.string(), age: Z.int()})
+      iex> Z.strict_map(%{name: Z.string(), age: Z.integer()})
       iex> |> Z.partial()
       iex> |> Z.parse(%{})
       {:ok, %{name: nil, age: nil}}
 
   You can optionally compact the resulting map (drop nil fields):
 
-      iex> Z.strict_map(%{name: Z.string(), age: Z.int()})
+      iex> Z.strict_map(%{name: Z.string(), age: Z.integer()})
       iex> |> Z.partial(compact: true)
       iex> |> Z.parse(%{name: "Alice"})
       {:ok, %{name: "Alice"}}
 
   It can be converted into json schema:
 
-      iex> Z.strict_map(%{name: Z.string(), age: Z.int()})
+      iex> Z.strict_map(%{name: Z.string(), age: Z.integer()})
       iex> |> Z.partial()
       iex> |> Z.describe("A person's profile.")
       iex> |> Z.example(%{"name" => "Bob", "age" => 18})
@@ -2158,7 +2163,7 @@ defmodule Zot do
 
   ## Examples
 
-      iex> Z.int()
+      iex> Z.integer()
       iex> |> Z.refine(& &1 >= 18)
       iex> |> Z.parse(16)
       iex> |> unwrap_issue_message()
@@ -2166,7 +2171,7 @@ defmodule Zot do
 
   You can optionally provide a custom error message:
 
-      iex> Z.int()
+      iex> Z.integer()
       iex> |> Z.refine(& &1 >= 18, error: "must be greater than or equal to 18")
       iex> |> Z.parse(16)
       iex> |> unwrap_issue_message()
@@ -2174,7 +2179,7 @@ defmodule Zot do
 
   The error message may include the actual value:
 
-      iex> Z.int()
+      iex> Z.integer()
       iex> |> Z.refine(& &1 >= 18, error: "must be greater than or equal to 18, got %{actual}")
       iex> |> Z.parse(16)
       iex> |> unwrap_issue_message()
@@ -2213,7 +2218,7 @@ defmodule Zot do
 
   ## Examples
 
-      iex> Z.int()
+      iex> Z.integer()
       iex> |> Z.transform(&Decimal.new/1)
       iex> |> Z.parse(42)
       {:ok, Decimal.new(42)}
