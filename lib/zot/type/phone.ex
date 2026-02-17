@@ -255,14 +255,14 @@ defmodule Zot.Type.Phone do
   ]
 
   @country_codes @data
-         |> Enum.map(& &1.code)
-         |> MapSet.new()
+                 |> Enum.map(& &1.code)
+                 |> MapSet.new()
 
-  deftype leading_plus_sign:     [t: :always | :forbid | :keep | :require, default: :keep],
+  deftype leading_plus_sign:     [t: :always | :keep | :never | :require | :trim, default: :keep],
           allowed_country_codes: [t: Zot.Parameterized.t(MapSet.t()) | nil, default: nil]
 
   def leading_plus_sign(%Zot.Type.Phone{} = type, value)
-      when value in [:always, :forbid, :keep, :require],
+      when value in [:always, :keep, :never, :require, :trim],
       do: %{type | leading_plus_sign: value}
 
   @opts error: "country code must be %{expected}"
@@ -320,9 +320,10 @@ defimpl Zot.Type, for: Zot.Type.Phone do
     {min, max} =
       case type.leading_plus_sign do
         :always -> {9, 16}
-        :forbid -> {8, 15}
         :keep -> {8, 16}
+        :never -> {8, 15}
         :require -> {9, 16}
+        :trim -> {8, 16}
       end
 
     %{
@@ -340,9 +341,11 @@ defimpl Zot.Type, for: Zot.Type.Phone do
   #   PRIVATE
   #
 
-  defp get_regex_param(:forbid), do: Zot.Parameterized.new(~r/^[0-9]{8,15}$/, error: "must contain only digits")
+  defp get_regex_param(:always), do: Zot.Parameterized.new(~r/^\+?[0-9]{8,15}$/, error: "must contain only digits and optionally a leading plus sign (+)")
   defp get_regex_param(:keep), do: Zot.Parameterized.new(~r/^\+?[0-9]{8,15}$/, error: "must contain only digits and optionally a leading plus sign (+)")
-  defp get_regex_param(_), do: Zot.Parameterized.new(~r/^\+[0-9]{8,15}$/, error: "must contain only digits and a leading plus sign (+)")
+  defp get_regex_param(:never), do: Zot.Parameterized.new(~r/^[0-9]{8,15}$/, error: "must contain only digits")
+  defp get_regex_param(:require), do: Zot.Parameterized.new(~r/^\+[0-9]{8,15}$/, error: "must contain only digits and a leading plus sign (+)")
+  defp get_regex_param(:trim), do: Zot.Parameterized.new(~r/^\+?[0-9]{8,15}$/, error: "must contain only digits and optionally a leading plus sign (+)")
 
   defp validate_country_code(<<code::binary-size(3), _::binary>>, nil) do
     possible_codes = [String.slice(code, 0, 1), String.slice(code, 0, 2), code]
@@ -364,9 +367,11 @@ defimpl Zot.Type, for: Zot.Type.Phone do
 
   defp validate_leading_plus_sign(<<"+", _::binary>> = value, :always), do: {:ok, value}
   defp validate_leading_plus_sign(value, :always), do: {:ok, "+#{value}"}
-  defp validate_leading_plus_sign(<<"+", _::binary>>, :forbid), do: {:error, [issue("must not start with a leading plus sign (+)")]}
-  defp validate_leading_plus_sign(value, :forbid), do: {:ok, value}
+  defp validate_leading_plus_sign(<<"+", _::binary>>, :never), do: {:error, [issue("must be digits only, without the leading plus sign (+)")]}
+  defp validate_leading_plus_sign(value, :never), do: {:ok, value}
   defp validate_leading_plus_sign(value, :keep), do: {:ok, value}
   defp validate_leading_plus_sign(<<"+", _::binary>> = value, :require), do: {:ok, value}
   defp validate_leading_plus_sign(_, :require), do: {:error, [issue("must start with a leading plus sign (+)")]}
+  defp validate_leading_plus_sign(<<"+", rest::binary>>, :trim), do: {:ok, rest}
+  defp validate_leading_plus_sign(value, :trim), do: {:ok, value}
 end

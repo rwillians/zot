@@ -1308,11 +1308,6 @@ defmodule Zot do
       iex> |> Z.parse("5511987654321")
       {:ok, "+5511987654321"}
 
-      iex> Z.phone(leading_plus_sign: :forbid)
-      iex> |> Z.parse("+5511987654321")
-      iex> |> unwrap_issue_message()
-      "must not start with a leading plus sign (+)"
-
       iex> Z.phone(leading_plus_sign: :keep)
       iex> |> Z.parse("+5511987654321")
       {:ok, "+5511987654321"}
@@ -1320,6 +1315,11 @@ defmodule Zot do
       iex> Z.phone(leading_plus_sign: :keep)
       iex> |> Z.parse("5511987654321")
       {:ok, "5511987654321"}
+
+      iex> Z.phone(leading_plus_sign: :never)
+      iex> |> Z.parse("+5511987654321")
+      iex> |> unwrap_issue_message()
+      "must be digits only, without the leading plus sign (+)"
 
       iex> Z.phone(leading_plus_sign: :require)
       iex> |> Z.parse("5511987654321")
@@ -1338,7 +1338,7 @@ defmodule Zot do
         "format" => "phone",
         "maxLength" => 16,
         "minLength" => 9,
-        "pattern" => "^\\+[0-9]{8,15}$",
+        "pattern" => "^\\+?[0-9]{8,15}$",
         "type" => "string"
       }
 
