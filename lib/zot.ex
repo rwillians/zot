@@ -2194,6 +2194,14 @@ defmodule Zot do
       do: %{type | effects: type.effects ++ [{:refine, Zot.Parameterized.new(fun, @opts, opts)}]}
 
   @doc ~S"""
+  Sets both min and max from an Elixir Range.
+  """
+  def range(type, value)
+  def range(%Zot.Type.Decimal{} = type, value), do: Zot.Type.Decimal.range(type, value)
+  def range(%Zot.Type.Float{} = type, value), do: Zot.Type.Float.range(type, value)
+  def range(%Zot.Type.Integer{} = type, value), do: Zot.Type.Integer.range(type, value)
+
+  @doc ~S"""
   Enforces that the string matches the given regex.
   """
   def regex(type, value, opts \\ [])

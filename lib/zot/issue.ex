@@ -115,6 +115,7 @@ defmodule Zot.Issue do
   defp render({:conjunction, values}), do: render_list(conjunction: values)
   defp render({:disjunction, values}), do: render_list(disjunction: values)
   defp render(%DateTime{} = value), do: DateTime.to_iso8601(value)
+  defp render(%Range{} = value), do: "#{value.first}..#{value.last}//#{value.step}"
   defp render(%Regex{} = value), do: "/#{value.source}/"
   defp render(value) when is_tuple(value), do: inspect(value)
   defp render(value), do: to_string(value)

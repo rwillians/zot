@@ -146,6 +146,22 @@ defmodule Zot.Commons do
   end
 
   @doc ~S"""
+  Validates that a value is within the given range.
+  """
+  @spec validate_range(value, Zot.Parameterized.t(Range.t()) | nil) ::
+          :ok
+          | {:error, [Zot.Issue.t(), ...]}
+        when value: term
+
+  def validate_range(_, nil), do: :ok
+
+  def validate_range(value, %Zot.Parameterized{} = range) do
+    if value in range.value,
+      do: :ok,
+      else: {:error, [issue(range.params.error, actual: value, expected: range.value)]}
+  end
+
+  @doc ~S"""
   Validates a string against a regex pattern.
   """
   @spec validate_regex(value, Zot.Parameterized.t(Regex.t()) | nil) ::
