@@ -508,6 +508,11 @@ defmodule Zot do
       do: Zot.Type.DiscriminatedUnion.new(discriminator: discriminator, inner_types: types)
 
   @doc ~S"""
+  Alias to `date_time/1`.
+  """
+  defdelegate dt(opts \\ []), to: Zot.Type.DateTime, as: :new
+
+  @doc ~S"""
   Creates an email type.
 
   ## Examples
