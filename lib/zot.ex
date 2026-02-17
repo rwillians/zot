@@ -3,7 +3,7 @@ defmodule Zot do
   Schema parser and validator for Elixir.
   """
 
-  import Zot.Utils, only: [is_mfa: 1, zot_type: 1]
+  import Zot.Utils, only: [is_mfa: 1, type: 1]
 
   alias Zot.Context
 
@@ -34,7 +34,7 @@ defmodule Zot do
   @spec json_schema(type) :: map
         when type: Zot.Type.t()
 
-  def json_schema(zot_type(_) = type) do
+  def json_schema(type(_) = type) do
     Zot.Type.json_schema(type)
     |> Enum.reject(fn {_, value} -> is_nil(value) end)
     |> Enum.into(%{})
@@ -83,6 +83,38 @@ defmodule Zot do
 
   """
   defdelegate pretty_print(issues, opts \\ []), to: Zot.Issue
+
+  @doc ~S"""
+  Pattern matches a Zot type struct.
+
+  ## Examples
+
+  Matching on any Zot type:
+
+      iex> zot_type(_) = Z.string()
+      Z.string()
+
+      iex> assert_raise MatchError, fn -> zot_type(_) = not_a_zot_type() end
+
+  Matching on a specific Zot type:
+
+      iex> zot_type(Zot.Type.String) = Z.string()
+      Z.string()
+
+      iex> assert_raise MatchError, fn -> zot_type(Zot.Type.String) = not_a_zot_string() end
+
+  Matching on any Zot type and binding its module to a variable:
+
+      iex> zot_type(mod) = Z.string()
+      iex> mod
+      Zot.Type.String
+
+  """
+  defmacro zot_type(var) do
+    quote do
+      %unquote(var){__zot_type__: true}
+    end
+  end
 
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
   # TYPES                                                           #
@@ -1063,7 +1095,7 @@ defmodule Zot do
       }
 
   """
-  def list(zot_type(_) = inner_type, opts \\ []) when is_list(opts), do: Zot.Type.List.new([{:inner_type, inner_type} | opts])
+  def list(type(_) = inner_type, opts \\ []) when is_list(opts), do: Zot.Type.List.new([{:inner_type, inner_type} | opts])
 
   @doc ~S"""
   Creates a literal type.
@@ -1432,7 +1464,7 @@ defmodule Zot do
       iex> assert Exception.message(issue) == "expected type float, got string"
 
   """
-  def record(zot_type(_) = values_type), do: Zot.Type.Record.new(keys_type: string(trim: true, min: 1), values_type: values_type)
+  def record(type(_) = values_type), do: Zot.Type.Record.new(keys_type: string(trim: true, min: 1), values_type: values_type)
 
   @doc ~S"""
   Creates a map type where unknown fields cause an issue.
@@ -1965,7 +1997,7 @@ defmodule Zot do
       {:ok, {:name, "Rafael"}}
 
   """
-  def branded(zot_type(_) = type, brand) when is_atom(brand),
+  def branded(type(_) = type, brand) when is_atom(brand),
     do: Zot.Type.Branded.new(brand: brand, inner_type: type)
 
   @doc ~S"""
@@ -1994,12 +2026,12 @@ defmodule Zot do
   @doc ~S"""
   Sets the field as not-required and provides a default value.
   """
-  def default(zot_type(_) = type, value), do: %{type | required: false, default: value}
+  def default(type(_) = type, value), do: %{type | required: false, default: value}
 
   @doc ~S"""
   Attaches a description to the type, for use in JSON Schema.
   """
-  def describe(zot_type(_) = type, desc)
+  def describe(type(_) = type, desc)
       when is_nil(desc)
       when is_binary(desc) and byte_size(desc) > 0,
       do: %{type | description: desc}
@@ -2013,7 +2045,7 @@ defmodule Zot do
   @doc ~S"""
   Attaches an example value to the type, for use in JSON Schema.
   """
-  def example(zot_type(_) = type, example), do: %{type | example: example}
+  def example(type(_) = type, example), do: %{type | example: example}
 
   @doc ~S"""
   Defines the behavior for leading plus signs in phone numbers.
@@ -2081,7 +2113,7 @@ defmodule Zot do
   @doc ~S"""
   Sets the field as not required (nullable).
   """
-  def optional(zot_type(_) = type), do: %{type | required: false}
+  def optional(type(_) = type), do: %{type | required: false}
 
   @doc ~S"""
   Sets the output format for the given type.
@@ -2254,7 +2286,7 @@ defmodule Zot do
 
   """
   @opts error: "is invalid"
-  def refine(zot_type(_) = type, fun, opts \\ [])
+  def refine(type(_) = type, fun, opts \\ [])
       when is_mfa(fun)
       when is_function(fun, 1)
       when is_function(fun, 2),
@@ -2299,7 +2331,7 @@ defmodule Zot do
       {:ok, Decimal.new(42)}
 
   """
-  def transform(zot_type(_) = type, fun)
+  def transform(type(_) = type, fun)
       when is_mfa(fun)
       when is_function(fun, 1),
       do: %{type | effects: type.effects ++ [{:transform, fun}]}

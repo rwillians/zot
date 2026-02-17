@@ -12,7 +12,7 @@ defmodule Zot.Type.Branded do
       when is_atom(value),
       do: %{type | brand: value}
 
-  def inner_type(%Zot.Type.Branded{} = type, zot_type(_) = value)
+  def inner_type(%Zot.Type.Branded{} = type, type(_) = value)
       when is_struct(value),
       do: %{type | inner_type: value}
 end
