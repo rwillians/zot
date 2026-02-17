@@ -1407,9 +1407,10 @@ defmodule Zot do
   You can define the behavior for the leading plus sign, where the
   options are:
   - `:always` - if absent, adds it to the output;
-  - `:forbid` - if present, results in an issue;
-  - `:keep` (default) - if present, keeps it; and
-  - `:require` - if absent, results in an issue.
+  - `:keep` (default) - if present, keeps it;
+  - `:never` - if present, results in an issue;
+  - `:require` - if absent, results in an issue; or
+  - `:trim` - if present, removes it from the output.
 
       iex> Z.phone(leading_plus_sign: :always)
       iex> |> Z.parse("5511987654321")
@@ -1432,6 +1433,14 @@ defmodule Zot do
       iex> |> Z.parse("5511987654321")
       iex> |> unwrap_issue_message()
       "must start with a leading plus sign (+)"
+
+      iex> Z.phone(leading_plus_sign: :trim)
+      iex> |> Z.parse("+5511987654321")
+      {:ok, "5511987654321"}
+
+      iex> Z.phone(leading_plus_sign: :trim)
+      iex> |> Z.parse("5511987654321")
+      {:ok, "5511987654321"}
 
   It can be converted into json schema:
 
