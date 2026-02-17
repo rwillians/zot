@@ -260,6 +260,61 @@ defmodule Zot do
   defdelegate boolean, to: Zot.Type.Boolean, as: :new
 
   @doc ~S"""
+  Creates a date type.
+
+  ## Examples
+
+      iex> Z.date()
+      iex> |> Z.parse(~D[2024-01-15])
+      {:ok, ~D[2024-01-15]}
+
+      iex> Z.date()
+      iex> |> Z.parse("foo")
+      iex> |> unwrap_issue_message()
+      "expected type Date, got string"
+
+  You can enforce that the date is after a given date:
+
+      iex> Z.date(min: ~D[2024-01-01])
+      iex> |> Z.parse(~D[2023-12-31])
+      iex> |> unwrap_issue_message()
+      "must be after 2024-01-01"
+
+  You can enforce that the date is before a given date:
+
+      iex> Z.date(max: ~D[2023-12-31])
+      iex> |> Z.parse(~D[2024-01-01])
+      iex> |> unwrap_issue_message()
+      "must be before 2023-12-31"
+
+  It supports coercion from ISO8601 strings:
+
+      iex> Z.date()
+      iex> |> Z.parse("2024-01-15", coerce: true)
+      {:ok, ~D[2024-01-15]}
+
+      iex> Z.date()
+      iex> |> Z.parse("Jan 15, 2024", coerce: true)
+      iex> |> unwrap_issue_message()
+      "must be a valid ISO8601 date string"
+
+  It can be converted into json schema:
+
+      iex> Z.date()
+      iex> |> Z.describe("A birth date.")
+      iex> |> Z.example(~D[2024-01-15])
+      iex> |> Z.json_schema()
+      %{
+        "type" => "string",
+        "format" => "date",
+        "description" => "A birth date.",
+        "examples" => ["2024-01-15"]
+      }
+
+  """
+  defdelegate date(opts \\ []), to: Zot.Type.Date, as: :new
+
+  @doc ~S"""
   Alias to `date_time/1`.
   """
   defdelegate datetime(opts \\ []), to: Zot.Type.DateTime, as: :new
@@ -1985,6 +2040,7 @@ defmodule Zot do
   Enforces a maximum value for the given type.
   """
   def max(type, value, opts \\ [])
+  def max(%Zot.Type.Date{} = type, value, opts), do: Zot.Type.Date.max(type, value, opts)
   def max(%Zot.Type.DateTime{} = type, value, opts), do: Zot.Type.DateTime.max(type, value, opts)
   def max(%Zot.Type.Decimal{} = type, value, opts), do: Zot.Type.Decimal.max(type, value, opts)
   def max(%Zot.Type.Float{} = type, value, opts), do: Zot.Type.Float.max(type, value, opts)
@@ -1998,6 +2054,7 @@ defmodule Zot do
   Enforces a minimum value for the given type.
   """
   def min(type, value, opts \\ [])
+  def min(%Zot.Type.Date{} = type, value, opts), do: Zot.Type.Date.min(type, value, opts)
   def min(%Zot.Type.DateTime{} = type, value, opts), do: Zot.Type.DateTime.min(type, value, opts)
   def min(%Zot.Type.Decimal{} = type, value, opts), do: Zot.Type.Decimal.min(type, value, opts)
   def min(%Zot.Type.Float{} = type, value, opts), do: Zot.Type.Float.min(type, value, opts)
