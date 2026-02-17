@@ -214,6 +214,11 @@ defmodule Zot do
   defdelegate atom, to: Zot.Type.Atom, as: :new
 
   @doc ~S"""
+  Alias to `boolean/0`.
+  """
+  defdelegate bool, to: Zot.Type.Boolean, as: :new
+
+  @doc ~S"""
   Creates a boolean type.
 
   ## Examples
