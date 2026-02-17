@@ -1,7 +1,7 @@
 defmodule Zot.MixProject do
   use Mix.Project
 
-  @version "0.7.3"
+  @version "0.7.4"
   @github "https://github.com/rwillians/zot"
 
   @description """
