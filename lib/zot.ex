@@ -260,6 +260,11 @@ defmodule Zot do
   defdelegate boolean, to: Zot.Type.Boolean, as: :new
 
   @doc ~S"""
+  Alias to `date_time/1`.
+  """
+  defdelegate datetime(opts \\ []), to: Zot.Type.DateTime, as: :new
+
+  @doc ~S"""
   Creates a date-time type.
 
   ## Examples
