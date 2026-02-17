@@ -1734,6 +1734,11 @@ defmodule Zot do
   defdelegate timestamp(opts \\ []), to: Zot.Type.DateTime, as: :new
 
   @doc ~S"""
+  Alias to `date_time/1`.
+  """
+  defdelegate ts(opts \\ []), to: Zot.Type.DateTime, as: :new
+
+  @doc ~S"""
   Creates a tuple type with a fixed number of heterogeneous elements.
 
   ## Examples
