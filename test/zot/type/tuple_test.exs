@@ -272,7 +272,7 @@ defmodule Zot.Type.TupleTest do
         |> Z.optional()
         |> Z.json_schema()
 
-      assert schema["type"] == ["array", "null"]
+      assert schema["type"] == ["array", nil]
     end
 
     test "generates schema for empty tuple" do

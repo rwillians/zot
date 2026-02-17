@@ -55,7 +55,7 @@ defmodule Zot.Commons do
              required?: boolean
 
   def maybe_nullable(type_name, true) when is_binary(type_name), do: type_name
-  def maybe_nullable(type_name, false) when is_binary(type_name), do: [type_name, "null"]
+  def maybe_nullable(type_name, false) when is_binary(type_name), do: [type_name, nil]
 
   @doc ~S"""
   Validates that the given value is included in the provided list of

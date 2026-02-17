@@ -2053,12 +2053,8 @@ defmodule Zot do
         "description" => "A person's profile.",
         "examples" => [%{"name" => "Bob", "age" => 18}],
         "properties" => %{
-          "name" => %{
-            "type" => ["string", "null"]
-          },
-          "age" => %{
-            "type" => ["integer", "null"]
-          }
+          "name" => %{"type" => ["string", nil]},
+          "age" => %{"type" => ["integer", nil]}
         },
         "required" => [],
         "additionalProperties" => false
