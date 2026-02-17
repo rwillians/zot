@@ -271,13 +271,18 @@ defmodule Zot.Type.Phone do
 
   def allowed_country_codes(%Zot.Type.Phone{} = type, value, opts)
       when is_list(value) and length(value) > 0 do
-    value = Enum.uniq(value)
-    invalid_codes = Enum.reject(value, &MapSet.member?(@country_codes, &1))
+    value =
+      value
+      |> Enum.uniq()
+      |> MapSet.new()
 
-    if length(invalid_codes) > 0 do
-      raise ArgumentError,
-            "invalid country codes #{Enum.join(invalid_codes, " | ")}"
-    end
+    invalid_codes =
+      value
+      |> MapSet.difference(@country_codes)
+      |> MapSet.to_list()
+
+    for code <- invalid_codes,
+        do: raise(ArgumentError, "invalid country code #{code}")
 
     %{type | allowed_country_codes: p(value, @opts, opts)}
   end
