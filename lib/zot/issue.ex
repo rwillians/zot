@@ -66,24 +66,18 @@ defmodule Zot.Issue do
   def prepend_path([_ | _] = issues, segments), do: Enum.map(issues, &prepend_path(&1, segments))
 
   @doc ~S"""
-  Renders a list of issues into a pretty-printed string.
+  Renders the given list of issues into a pretty-printed string.
   """
   @spec pretty_print([t, ...]) :: String.t()
 
   def pretty_print([_ | _] = issues, opts \\ []) when is_list(opts) do
     colors? = Keyword.get(opts, :colors, true)
 
-    summary =
-      issues
-      |> summarize()
-      |> Enum.map(fn {path, messages} -> {path, Enum.join(messages, ", ")} end)
-      |> Enum.map(fn {path, message} -> "  * Field `#{mh(path, colors?)}` #{message};" end)
-      |> Enum.join("\n")
-
-    """
-    One or more fields failed validation:
-    #{summary}
-    """
+    issues
+    |> summarize()
+    |> Enum.map(fn {path, messages} -> {path, Enum.join(messages, ", ")} end)
+    |> Enum.map(fn {path, message} -> "  * Field `#{mh(path, colors?)}` #{message}" end)
+    |> Enum.join("\n")
   end
 
   @doc ~S"""

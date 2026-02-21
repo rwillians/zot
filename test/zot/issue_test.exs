@@ -208,7 +208,6 @@ defmodule Zot.IssueTest do
 
       output = Issue.pretty_print(issues)
 
-      assert output =~ "One or more fields failed validation:"
       assert output =~ "user.name"
       assert output =~ "is required"
       assert output =~ "user.email"

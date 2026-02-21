@@ -75,11 +75,11 @@ defmodule Zot do
   ## Examples
 
       iex> {:error, issues} =
-      iex>   Z.map(%{age: Z.integer(min: 18)})
+      iex>   Z.map(%{name: Z.string(), age: Z.integer(min: 18)})
       iex>   |> Z.parse(%{age: 16})
       iex>
       iex> Z.pretty_print(issues, colors: false)
-      "One or more fields failed validation:\n  * Field `age` must be at least 18, got 16;\n"
+      "  * Field `age` must be at least 18, got 16\n  * Field `name` is required"
 
   """
   defdelegate pretty_print(issues, opts \\ []), to: Zot.Issue
