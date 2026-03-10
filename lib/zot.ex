@@ -1481,6 +1481,65 @@ defmodule Zot do
   def record(type(_) = values_type), do: Zot.Type.Record.new(keys_type: string(trim: true, min: 1), values_type: values_type)
 
   @doc ~S"""
+  Creates a set type (a list of unique items).
+
+  It works exactly like `list/2`, except that it always deduplicates
+  the output. You can enforce that the input itself must contain no
+  duplicates by using the `unique` option.
+
+  ## Examples
+
+      iex> Z.string()
+      iex> |> Z.set()
+      iex> |> Z.parse(["a", "b", "a"])
+      {:ok, ["a", "b"]}
+
+  You can enforce that the input must have unique items:
+
+      iex> Z.string()
+      iex> |> Z.set(unique: :enforce)
+      iex> |> Z.parse(["a", "b", "a"])
+      iex> |> unwrap_issue_message()
+      "expected unique values only, found duplicate at index 2"
+
+  You can enforce a minimum length:
+
+      iex> Z.string()
+      iex> |> Z.set(min: 2)
+      iex> |> Z.parse(["one"])
+      iex> |> unwrap_issue_message()
+      "must have at least 2 items, got 1"
+
+  You can enforce a maximum length:
+
+      iex> Z.string()
+      iex> |> Z.set(max: 2)
+      iex> |> Z.parse(["one", "two", "three"])
+      iex> |> unwrap_issue_message()
+      "must have at most 2 items, got 3"
+
+  It can be converted into json schema:
+
+      iex> Z.string()
+      iex> |> Z.set(min: 1, max: 5)
+      iex> |> Z.describe("A set of tags.")
+      iex> |> Z.example(["elixir", "zot"])
+      iex> |> Z.json_schema()
+      %{
+        "type" => "array",
+        "items" => %{
+          "type" => "string"
+        },
+        "description" => "A set of tags.",
+        "minItems" => 1,
+        "maxItems" => 5,
+        "uniqueItems" => true
+      }
+
+  """
+  def set(type(_) = inner_type, opts \\ []) when is_list(opts), do: Zot.Type.Set.new([{:inner_type, inner_type} | opts])
+
+  @doc ~S"""
   Creates a map type where unknown fields cause an issue.
 
   ## Examples
