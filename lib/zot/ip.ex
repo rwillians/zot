@@ -7,7 +7,7 @@ defmodule Zot.Ip do
   representations where applicable.
   """
 
-  import Bitwise
+  import Bitwise, only: [band: 2, bor: 2, bsl: 2, bsr: 2, bxor: 2]
 
   # -- Types ---------------------------------------------------------
 
