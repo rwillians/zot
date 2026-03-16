@@ -110,18 +110,13 @@ defmodule Zot.Ip do
   @spec parse_cidr(String.t()) :: {:ok, {ip_tuple, prefix}} | :error
 
   def parse_cidr(string) when is_binary(string) do
-    case String.split(string, "/", parts: 2) do
-      [ip_str, prefix_str] ->
-        with {:ok, ip} <- parse_ip(ip_str),
-             {prefix_len, ""} <- Integer.parse(prefix_str),
-             true <- valid_prefix?(ip, prefix_len) do
-          {:ok, {ip, prefix_len}}
-        else
-          _ -> :error
-        end
-
-      _ ->
-        :error
+    with [ip_str, prefix_str] <- String.split(string, "/", parts: 2),
+         {:ok, ip} <- parse_ip(ip_str),
+         {prefix_len, ""} <- Integer.parse(prefix_str),
+         true <- valid_prefix?(ip, prefix_len) do
+      {:ok, {ip, prefix_len}}
+    else
+      _ -> :error
     end
   end
 
@@ -177,23 +172,14 @@ defmodule Zot.Ip do
   end
 
   def in_cidr?(ip, cidr) when is_binary(cidr) do
+    {base, prefix_len} = parse_cidr!(cidr)
+
     ip_tuple = resolve_ip(ip)
+    version = ip_version(ip_tuple)
 
-    case parse_cidr(cidr) do
-      {:ok, {base, prefix_len}} ->
-        ip_version = ip_version(ip_tuple)
-        base_version = ip_version(base)
-
-        if ip_version != base_version do
-          false
-        else
-          m = mask(prefix_len, ip_version)
-          band(to_integer(ip_tuple), m) == band(to_integer(base), m)
-        end
-
-      :error ->
-        false
-    end
+    with true <- version == ip_version(base),
+         mask <- mask(prefix_len, version),
+         do: band(to_integer(ip_tuple), mask) == band(to_integer(base), mask)
   end
 
   @doc """
