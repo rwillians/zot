@@ -15,7 +15,7 @@ defmodule Zot.Ip do
   @type ipv6_tuple :: {0..65535, 0..65535, 0..65535, 0..65535, 0..65535, 0..65535, 0..65535, 0..65535}
   @type ip_tuple :: ipv4_tuple | ipv6_tuple
   @type ip :: String.t()
-  @type prefix :: non_neg_integer()
+  @type prefix :: non_neg_integer
   @type cidr_set :: :private | :loopback | :link_local
 
   # -- Predefined CIDR sets ------------------------------------------
