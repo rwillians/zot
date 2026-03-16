@@ -5,14 +5,6 @@ defmodule Zot.Type.IP do
 
   use Zot.Template
 
-  # Predefined CIDR sets
-  @private_v4 ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
-  @private_v6 ["fc00::/7"]
-  @loopback_v4 ["127.0.0.0/8"]
-  @loopback_v6 ["::1/128"]
-  @link_local_v4 ["169.254.0.0/16"]
-  @link_local_v6 ["fe80::/10"]
-
   deftype version: [t: :any | :v4 | :v6, default: :any],
           output:  [t: :string | :tuple, default: :string],
           cidr:    [t: [Zot.Parameterized.t(term)] | nil, default: nil]
@@ -32,21 +24,21 @@ defmodule Zot.Type.IP do
 
   @opts error: "must be a private IP address"
   def cidr(%Zot.Type.IP{} = type, :private, opts) do
-    ranges = @private_v4 ++ @private_v6
+    ranges = Zot.Ip.cidrs(:private)
 
     add_cidr_constraint(type, p(ranges, @opts, opts))
   end
 
   @opts error: "must be a loopback IP address"
   def cidr(%Zot.Type.IP{} = type, :loopback, opts) do
-    ranges = @loopback_v4 ++ @loopback_v6
+    ranges = Zot.Ip.cidrs(:loopback)
 
     add_cidr_constraint(type, p(ranges, @opts, opts))
   end
 
   @opts error: "must be a link-local IP address"
   def cidr(%Zot.Type.IP{} = type, :link_local, opts) do
-    ranges = @link_local_v4 ++ @link_local_v6
+    ranges = Zot.Ip.cidrs(:link_local)
 
     add_cidr_constraint(type, p(ranges, @opts, opts))
   end
@@ -176,76 +168,7 @@ defimpl Zot.Type, for: Zot.Type.IP do
   end
 
   defp check_cidr_constraint(ranges, ip_tuple) when is_list(ranges),
-    do: Enum.any?(ranges, &ip_in_cidr?(ip_tuple, &1))
-
-  defp ip_in_cidr?(ip_tuple, cidr_string) do
-    case parse_cidr(cidr_string) do
-      {:ok, base_tuple, prefix_len} -> ip_matches_cidr?(ip_tuple, base_tuple, prefix_len)
-      :error -> false
-    end
-  end
-
-  defp parse_cidr(cidr_string) do
-    case String.split(cidr_string, "/") do
-      [ip_str, prefix_str] ->
-        case {Integer.parse(prefix_str), :inet.parse_address(String.to_charlist(ip_str))} do
-          {{prefix_len, ""}, {:ok, base_tuple}} -> {:ok, base_tuple, prefix_len}
-          _ -> :error
-        end
-
-      _ ->
-        :error
-    end
-  end
-
-  defp ip_matches_cidr?(ip_tuple, base_tuple, prefix_len)
-       when tuple_size(ip_tuple) == 4 and tuple_size(base_tuple) == 4 do
-    ip_int = ipv4_to_integer(ip_tuple)
-    base_int = ipv4_to_integer(base_tuple)
-    mask = ipv4_mask(prefix_len)
-
-    Bitwise.band(ip_int, mask) == Bitwise.band(base_int, mask)
-  end
-
-  defp ip_matches_cidr?(ip_tuple, base_tuple, prefix_len)
-       when tuple_size(ip_tuple) == 8 and tuple_size(base_tuple) == 8 do
-    ip_int = ipv6_to_integer(ip_tuple)
-    base_int = ipv6_to_integer(base_tuple)
-    mask = ipv6_mask(prefix_len)
-
-    Bitwise.band(ip_int, mask) == Bitwise.band(base_int, mask)
-  end
-
-  # Mismatched IP versions (e.g., IPv4 address against IPv6 CIDR)
-  defp ip_matches_cidr?(_, _, _),
-    do: false
-
-  defp ipv4_to_integer({a, b, c, d}) do
-    Bitwise.bsl(a, 24)
-    |> Bitwise.bor(Bitwise.bsl(b, 16))
-    |> Bitwise.bor(Bitwise.bsl(c, 8))
-    |> Bitwise.bor(d)
-  end
-
-  defp ipv4_mask(prefix_len) when prefix_len >= 0 and prefix_len <= 32 do
-    Bitwise.bsl(0xFFFFFFFF, 32 - prefix_len) |> Bitwise.band(0xFFFFFFFF)
-  end
-
-  defp ipv6_to_integer({a, b, c, d, e, f, g, h}) do
-    Bitwise.bsl(a, 112)
-    |> Bitwise.bor(Bitwise.bsl(b, 96))
-    |> Bitwise.bor(Bitwise.bsl(c, 80))
-    |> Bitwise.bor(Bitwise.bsl(d, 64))
-    |> Bitwise.bor(Bitwise.bsl(e, 48))
-    |> Bitwise.bor(Bitwise.bsl(f, 32))
-    |> Bitwise.bor(Bitwise.bsl(g, 16))
-    |> Bitwise.bor(h)
-  end
-
-  defp ipv6_mask(prefix_len) when prefix_len >= 0 and prefix_len <= 128 do
-    max_val = Bitwise.bsl(1, 128) - 1
-    Bitwise.bsl(max_val, 128 - prefix_len) |> Bitwise.band(max_val)
-  end
+    do: Zot.Ip.in_cidr?(ip_tuple, ranges)
 
   defp format_cidr_ranges([single]),
     do: {:escaped, single}

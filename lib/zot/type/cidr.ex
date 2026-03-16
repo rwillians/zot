@@ -177,8 +177,8 @@ defimpl Zot.Type, for: Zot.Type.CIDR do
   end
 
   defp validate_and_canonicalize(type, ip_tuple, prefix, original_value) do
-    network_addr = calculate_network_address(ip_tuple, prefix)
-    broadcast_addr = calculate_broadcast_address(ip_tuple, prefix)
+    network_addr = Zot.Ip.network_address(ip_tuple, prefix)
+    broadcast_addr = Zot.Ip.broadcast_address(ip_tuple, prefix)
 
     is_canonical = ip_tuple == network_addr
 
@@ -209,89 +209,4 @@ defimpl Zot.Type, for: Zot.Type.CIDR do
   defp format_output(:map, network_addr, broadcast_addr, prefix),
     do: %{start: network_addr, end: broadcast_addr, prefix: prefix}
 
-  # IPv4 helpers
-  defp calculate_network_address(ip_tuple, prefix) when tuple_size(ip_tuple) == 4 do
-    ip_int = ipv4_to_integer(ip_tuple)
-    mask = ipv4_mask(prefix)
-    network_int = Bitwise.band(ip_int, mask)
-
-    integer_to_ipv4(network_int)
-  end
-
-  # IPv6 helpers
-  defp calculate_network_address(ip_tuple, prefix) when tuple_size(ip_tuple) == 8 do
-    ip_int = ipv6_to_integer(ip_tuple)
-    mask = ipv6_mask(prefix)
-    network_int = Bitwise.band(ip_int, mask)
-
-    integer_to_ipv6(network_int)
-  end
-
-  defp calculate_broadcast_address(ip_tuple, prefix) when tuple_size(ip_tuple) == 4 do
-    ip_int = ipv4_to_integer(ip_tuple)
-    mask = ipv4_mask(prefix)
-    inverse_mask = Bitwise.bxor(mask, 0xFFFFFFFF)
-    broadcast_int = Bitwise.bor(Bitwise.band(ip_int, mask), inverse_mask)
-
-    integer_to_ipv4(broadcast_int)
-  end
-
-  defp calculate_broadcast_address(ip_tuple, prefix) when tuple_size(ip_tuple) == 8 do
-    ip_int = ipv6_to_integer(ip_tuple)
-    mask = ipv6_mask(prefix)
-    max_val = Bitwise.bsl(1, 128) - 1
-    inverse_mask = Bitwise.bxor(mask, max_val)
-    broadcast_int = Bitwise.bor(Bitwise.band(ip_int, mask), inverse_mask)
-
-    integer_to_ipv6(broadcast_int)
-  end
-
-  defp ipv4_to_integer({a, b, c, d}) do
-    Bitwise.bsl(a, 24)
-    |> Bitwise.bor(Bitwise.bsl(b, 16))
-    |> Bitwise.bor(Bitwise.bsl(c, 8))
-    |> Bitwise.bor(d)
-  end
-
-  defp ipv4_mask(prefix_len) when prefix_len >= 0 and prefix_len <= 32,
-    do: Bitwise.bsl(0xFFFFFFFF, 32 - prefix_len) |> Bitwise.band(0xFFFFFFFF)
-
-  defp integer_to_ipv4(int) do
-    {
-      Bitwise.band(Bitwise.bsr(int, 24), 0xFF),
-      Bitwise.band(Bitwise.bsr(int, 16), 0xFF),
-      Bitwise.band(Bitwise.bsr(int, 8), 0xFF),
-      Bitwise.band(int, 0xFF)
-    }
-  end
-
-  defp ipv6_to_integer({a, b, c, d, e, f, g, h}) do
-    Bitwise.bsl(a, 112)
-    |> Bitwise.bor(Bitwise.bsl(b, 96))
-    |> Bitwise.bor(Bitwise.bsl(c, 80))
-    |> Bitwise.bor(Bitwise.bsl(d, 64))
-    |> Bitwise.bor(Bitwise.bsl(e, 48))
-    |> Bitwise.bor(Bitwise.bsl(f, 32))
-    |> Bitwise.bor(Bitwise.bsl(g, 16))
-    |> Bitwise.bor(h)
-  end
-
-  defp ipv6_mask(prefix_len) when prefix_len >= 0 and prefix_len <= 128 do
-    max_val = Bitwise.bsl(1, 128) - 1
-
-    Bitwise.bsl(max_val, 128 - prefix_len) |> Bitwise.band(max_val)
-  end
-
-  defp integer_to_ipv6(int) do
-    {
-      Bitwise.band(Bitwise.bsr(int, 112), 0xFFFF),
-      Bitwise.band(Bitwise.bsr(int, 96), 0xFFFF),
-      Bitwise.band(Bitwise.bsr(int, 80), 0xFFFF),
-      Bitwise.band(Bitwise.bsr(int, 64), 0xFFFF),
-      Bitwise.band(Bitwise.bsr(int, 48), 0xFFFF),
-      Bitwise.band(Bitwise.bsr(int, 32), 0xFFFF),
-      Bitwise.band(Bitwise.bsr(int, 16), 0xFFFF),
-      Bitwise.band(int, 0xFFFF)
-    }
-  end
 end
