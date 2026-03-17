@@ -138,7 +138,97 @@ defmodule Zot.Ip do
     end
   end
 
+  # -- Formatting ----------------------------------------------------
+
+  @doc """
+  Converts an `:inet` IP tuple to its string representation.
+
+  ## Examples
+
+      iex> Zot.Ip.to_string({192, 168, 1, 1})
+      "192.168.1.1"
+
+      iex> Zot.Ip.to_string({0, 0, 0, 0, 0, 0, 0, 1})
+      "::1"
+
+  """
+  @spec to_string(ip | ip_tuple) :: String.t()
+
+  def to_string(string) when is_binary(string), do: string
+  def to_string(ip_tuple) when is_tuple(ip_tuple), do: List.to_string(:inet.ntoa(ip_tuple))
+
   # -- Predicates ----------------------------------------------------
+
+  @doc """
+  Returns `true` if the given string is a valid IP address.
+
+  ## Examples
+
+      iex> Zot.Ip.is_ip?("192.168.1.1")
+      true
+
+      iex> Zot.Ip.is_ip?("::1")
+      true
+
+      iex> Zot.Ip.is_ip?("not_an_ip")
+      false
+
+  """
+  @spec is_ip?(String.t()) :: boolean
+
+  def is_ip?(string) when is_binary(string) do
+    match?({:ok, _}, parse_ip(string))
+  end
+
+  @doc """
+  Returns `true` if the given string is a valid IP address of the
+  specified version.
+
+  ## Examples
+
+      iex> Zot.Ip.is_ip?("192.168.1.1", :v4)
+      true
+
+      iex> Zot.Ip.is_ip?("::1", :v4)
+      false
+
+      iex> Zot.Ip.is_ip?("::1", :v6)
+      true
+
+      iex> Zot.Ip.is_ip?("192.168.1.1", :v6)
+      false
+
+  """
+  @spec is_ip?(String.t(), :v4 | :v6) :: boolean
+
+  def is_ip?(string, :v4) when is_binary(string) do
+    match?({:ok, _}, :inet.parse_ipv4strict_address(String.to_charlist(string)))
+  end
+
+  def is_ip?(string, :v6) when is_binary(string) do
+    match?({:ok, _}, :inet.parse_ipv6strict_address(String.to_charlist(string)))
+  end
+
+  @doc """
+  Returns `true` if the given string is a valid CIDR notation.
+
+  ## Examples
+
+      iex> Zot.Ip.is_cidr?("192.168.0.0/24")
+      true
+
+      iex> Zot.Ip.is_cidr?("fc00::/7")
+      true
+
+      iex> Zot.Ip.is_cidr?("not_a_cidr")
+      false
+
+  """
+  @spec is_cidr?(String.t()) :: boolean
+
+  def is_cidr?(string) when is_binary(string) do
+    match?({:ok, _}, parse_cidr(string))
+  end
 
   @doc """
   Checks whether an IP address falls within a CIDR range, a list of CIDR

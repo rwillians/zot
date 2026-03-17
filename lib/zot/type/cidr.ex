@@ -100,10 +100,7 @@ defimpl Zot.Type, for: Zot.Type.CIDR do
   # Coerce from {ip_tuple, prefix}
   defp coerce({ip_tuple, prefix}, _)
        when is_tuple(ip_tuple) and (tuple_size(ip_tuple) == 4 or tuple_size(ip_tuple) == 8) and is_integer(prefix) do
-    case :inet.ntoa(ip_tuple) do
-      {:error, _} -> {:error, [issue("cannot be coerced to CIDR notation")]}
-      charlist -> {:ok, "#{List.to_string(charlist)}/#{prefix}"}
-    end
+    {:ok, "#{Zot.Ip.to_string(ip_tuple)}/#{prefix}"}
   end
 
   # Coerce from %{ip: tuple, prefix: int} or %{address: tuple, prefix: int}
@@ -195,12 +192,7 @@ defimpl Zot.Type, for: Zot.Type.CIDR do
   end
 
   defp format_output(:string, network_addr, _, prefix) do
-    ip_str =
-      network_addr
-      |> :inet.ntoa()
-      |> List.to_string()
-
-    "#{ip_str}/#{prefix}"
+    "#{Zot.Ip.to_string(network_addr)}/#{prefix}"
   end
 
   defp format_output(:tuple, network_addr, broadcast_addr, prefix),

@@ -108,17 +108,11 @@ defimpl Zot.Type, for: Zot.Type.IP do
     do: {:ok, value}
 
   defp coerce(value, _) when is_tuple(value) and tuple_size(value) == 4 do
-    case :inet.ntoa(value) do
-      {:error, _} -> {:error, [issue("cannot be coerced to IP address")]}
-      charlist -> {:ok, List.to_string(charlist)}
-    end
+    {:ok, Zot.Ip.to_string(value)}
   end
 
   defp coerce(value, _) when is_tuple(value) and tuple_size(value) == 8 do
-    case :inet.ntoa(value) do
-      {:error, _} -> {:error, [issue("cannot be coerced to IP address")]}
-      charlist -> {:ok, List.to_string(charlist)}
-    end
+    {:ok, Zot.Ip.to_string(value)}
   end
 
   # let validate_type/2 handle it
@@ -147,9 +141,7 @@ defimpl Zot.Type, for: Zot.Type.IP do
   end
 
   defp format_output(:string, tuple) do
-    tuple
-    |> :inet.ntoa()
-    |> List.to_string()
+    Zot.Ip.to_string(tuple)
   end
 
   defp format_output(:tuple, tuple),
