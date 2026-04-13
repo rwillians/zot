@@ -48,4 +48,56 @@ defmodule Zot.Type.URITest do
                Z.uri(require_path: true) |> Z.parse("https://example.com/foo/bar")
     end
   end
+
+  describe "allowed_ports" do
+    test "passes when URI has no explicit port" do
+      assert {:ok, "https://example.com"} =
+               Z.uri(allowed_ports: [80, 443]) |> Z.parse("https://example.com")
+    end
+
+    test "accepts port in allowed list" do
+      assert {:ok, "https://example.com:8080/path"} =
+               Z.uri(allowed_ports: [80, 8080]) |> Z.parse("https://example.com:8080/path")
+    end
+
+    test "rejects port not in allowed list" do
+      assert {:error, [issue]} =
+               Z.uri(allowed_ports: [80, 443]) |> Z.parse("https://example.com:9090/path")
+
+      assert Exception.message(issue) == "port must be 80 or 443, got 9090"
+    end
+  end
+
+  describe "forbidden_ports" do
+    test "passes when port is not in forbidden list" do
+      assert {:ok, "https://example.com:8080/path"} =
+               Z.uri(forbidden_ports: [25]) |> Z.parse("https://example.com:8080/path")
+    end
+
+    test "rejects port in forbidden list" do
+      assert {:error, [issue]} =
+               Z.uri(forbidden_ports: [25]) |> Z.parse("https://example.com:25/path")
+
+      assert Exception.message(issue) == "port 25 is not allowed"
+    end
+
+    test "passes when URI has no explicit port" do
+      assert {:ok, "https://example.com"} =
+               Z.uri(forbidden_ports: [25]) |> Z.parse("https://example.com")
+    end
+  end
+
+  describe "allowed_ports + forbidden_ports conflict" do
+    test "raises when both are set (allowed first)" do
+      assert_raise ArgumentError, ~r/cannot set forbidden_ports/, fn ->
+        Z.uri(allowed_ports: [80]) |> Z.forbidden_ports([25])
+      end
+    end
+
+    test "raises when both are set (forbidden first)" do
+      assert_raise ArgumentError, ~r/cannot set allowed_ports/, fn ->
+        Z.uri(forbidden_ports: [25]) |> Z.allowed_ports([80])
+      end
+    end
+  end
 end

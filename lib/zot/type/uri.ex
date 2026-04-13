@@ -6,6 +6,8 @@ defmodule Zot.Type.URI do
   use Zot.Template
 
   deftype allowed_schemes: [t: Zot.Parameterized.t([String.t(), ...]) | nil],
+          allowed_ports:   [t: Zot.Parameterized.t([pos_integer, ...]) | nil],
+          forbidden_ports: [t: Zot.Parameterized.t([pos_integer, ...]) | nil],
           require_path:    [t: boolean,                                      default: false],
           query_string:    [t: Zot.Parameterized.t(:keep | :forbid | :trim), default: :keep],
           trailing_slash:  [t: :always | :keep | :trim,                      default: :keep]
@@ -22,6 +24,38 @@ defmodule Zot.Type.URI do
     end
 
     %{type | allowed_schemes: p(value, @opts, opts)}
+  end
+
+  @opts error: "port must be %{expected}, got %{actual}"
+  def allowed_ports(type, value, opts \\ [])
+  def allowed_ports(%Zot.Type.URI{} = type, nil, _), do: %{type | allowed_ports: nil}
+
+  def allowed_ports(%Zot.Type.URI{forbidden_ports: fp} = type, value, opts)
+      when is_list(value) do
+    if fp, do: raise(ArgumentError, "cannot set allowed_ports when forbidden_ports is already set")
+
+    unless Enum.all?(value, &(is_integer(&1) and &1 > 0)) do
+      raise ArgumentError,
+            "allowed_ports must all be positive integers, got #{inspect(value)}"
+    end
+
+    %{type | allowed_ports: p(value, @opts, opts)}
+  end
+
+  @opts error: "port %{actual} is not allowed"
+  def forbidden_ports(type, value, opts \\ [])
+  def forbidden_ports(%Zot.Type.URI{} = type, nil, _), do: %{type | forbidden_ports: nil}
+
+  def forbidden_ports(%Zot.Type.URI{allowed_ports: ap} = type, value, opts)
+      when is_list(value) do
+    if ap, do: raise(ArgumentError, "cannot set forbidden_ports when allowed_ports is already set")
+
+    unless Enum.all?(value, &(is_integer(&1) and &1 > 0)) do
+      raise ArgumentError,
+            "forbidden_ports must all be positive integers, got #{inspect(value)}"
+    end
+
+    %{type | forbidden_ports: p(value, @opts, opts)}
   end
 
   def require_path(%Zot.Type.URI{} = type, value \\ true)
@@ -47,6 +81,7 @@ defimpl Zot.Type, for: Zot.Type.URI do
          {:ok, value} <- parse_uri(value),
          :ok <- validate_inclusion(value.scheme, type.allowed_schemes),
          :ok <- validate_host(value),
+         :ok <- validate_port(value, type.allowed_ports, type.forbidden_ports),
          :ok <- validate_path_required(value, type.require_path),
          {:ok, value} <- validate_query_string(value, type.query_string),
          {:ok, value} <- validate_trailing_slash(value, type.trailing_slash),
@@ -71,6 +106,23 @@ defimpl Zot.Type, for: Zot.Type.URI do
 
   defp validate_host(%URI{host: host}) when is_binary(host) and byte_size(host) > 0, do: :ok
   defp validate_host(_), do: {:error, [issue("host is required")]}
+
+  defp validate_port(_, nil, nil), do: :ok
+  defp validate_port(%URI{port: nil}, _, _), do: :ok
+
+  defp validate_port(%URI{port: port}, %Zot.Parameterized{} = allowed, _) do
+    case port in allowed.value do
+      true -> :ok
+      false -> {:error, [issue(allowed.params.error, expected: {:disjunction, allowed.value}, actual: port)]}
+    end
+  end
+
+  defp validate_port(%URI{port: port}, _, %Zot.Parameterized{} = forbidden) do
+    case port in forbidden.value do
+      true -> {:error, [issue(forbidden.params.error, actual: port)]}
+      false -> :ok
+    end
+  end
 
   defp validate_path_required(_, false), do: :ok
   defp validate_path_required(%URI{path: path}, true) when is_binary(path) and path not in ["", "/"], do: :ok

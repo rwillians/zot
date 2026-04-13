@@ -1949,6 +1949,26 @@ defmodule Zot do
       iex> |> unwrap_issue_message()
       "path is required"
 
+  You can restrict which ports are allowed or forbidden:
+
+      iex> Z.uri(allowed_ports: [80, 8080])
+      iex> |> Z.parse("https://example.com:8080/path")
+      {:ok, "https://example.com:8080/path"}
+
+      iex> Z.uri(allowed_ports: [80, 443])
+      iex> |> Z.parse("https://example.com:9090/path")
+      iex> |> unwrap_issue_message()
+      "port must be 80 or 443, got 9090"
+
+      iex> Z.uri(forbidden_ports: [25])
+      iex> |> Z.parse("https://example.com:25/path")
+      iex> |> unwrap_issue_message()
+      "port 25 is not allowed"
+
+      iex> Z.uri(allowed_ports: [80, 443])
+      iex> |> Z.parse("https://example.com")
+      {:ok, "https://example.com"}
+
   You can enforce a limited set of allowed schemes:
 
       iex> Z.uri(allowed_schemes: ["http", "https"])
@@ -2093,6 +2113,13 @@ defmodule Zot do
   defdelegate allowed_schemes(type, value, opts \\ []), to: Zot.Type.URI
 
   @doc ~S"""
+  Restricts which ports are allowed in a URI.
+
+  See `uri/1` for more details.
+  """
+  defdelegate allowed_ports(type, value, opts \\ []), to: Zot.Type.URI
+
+  @doc ~S"""
   Wraps the parsed value in a branded tuple.
 
   ## Examples
@@ -2152,6 +2179,13 @@ defmodule Zot do
   Attaches an example value to the type, for use in JSON Schema.
   """
   def example(type(_) = type, example), do: %{type | example: example}
+
+  @doc ~S"""
+  Restricts which ports are forbidden in a URI.
+
+  See `uri/1` for more details.
+  """
+  defdelegate forbidden_ports(type, value, opts \\ []), to: Zot.Type.URI
 
   @doc ~S"""
   Defines the behavior for leading plus signs in phone numbers.
