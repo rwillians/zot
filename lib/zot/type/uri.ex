@@ -41,6 +41,7 @@ defimpl Zot.Type, for: Zot.Type.URI do
     with :ok <- validate_type(value, is: "string"),
          {:ok, value} <- parse_uri(value),
          :ok <- validate_inclusion(value.scheme, type.allowed_schemes),
+         :ok <- validate_host(value),
          {:ok, value} <- validate_query_string(value, type.query_string),
          {:ok, value} <- validate_trailing_slash(value, type.trailing_slash),
          do: {:ok, URI.to_string(value)}
@@ -61,6 +62,9 @@ defimpl Zot.Type, for: Zot.Type.URI do
   #
 
   defp parse_uri(value), do: with({:error, _} <- URI.new(value), do: {:error, [issue("is invalid")]})
+
+  defp validate_host(%URI{host: host}) when is_binary(host) and byte_size(host) > 0, do: :ok
+  defp validate_host(_), do: {:error, [issue("host is required")]}
 
   defp validate_query_string(%URI{query: <<_, _::binary>>}, %Zot.Parameterized{value: :forbid} = qs), do: {:error, [issue(qs.params.error)]}
   defp validate_query_string(%URI{query: <<_, _::binary>>} = value, %Zot.Parameterized{value: :trim}), do: {:ok, %{value | query: nil}}

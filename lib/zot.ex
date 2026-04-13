@@ -1921,6 +1921,18 @@ defmodule Zot do
       iex> |> unwrap_issue_message()
       "is invalid"
 
+  A host is always required:
+
+      iex> Z.uri()
+      iex> |> Z.parse("/relative/path")
+      iex> |> unwrap_issue_message()
+      "host is required"
+
+      iex> Z.uri()
+      iex> |> Z.parse("urn:isbn:0451450523")
+      iex> |> unwrap_issue_message()
+      "host is required"
+
   You can enforce a limited set of allowed schemes:
 
       iex> Z.uri(allowed_schemes: ["http", "https"])
