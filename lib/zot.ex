@@ -110,9 +110,9 @@ defmodule Zot do
       Zot.Type.String
 
   """
-  defmacro zot_type(var) do
+  defmacro zot_type(mod) do
     quote do
-      %unquote(var){__zot_type__: true}
+      %unquote(mod){__zot_type__: true}
     end
   end
 
