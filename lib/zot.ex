@@ -1908,27 +1908,27 @@ defmodule Zot do
   def union(types), do: Zot.Type.Union.new(inner_types: types)
 
   @doc ~S"""
-  Creates a URI string type.
+  Creates a URL string type.
 
   ## Examples
 
-      iex> Z.uri()
+      iex> Z.url()
       iex> |> Z.parse("https://zot.dev")
       {:ok, "https://zot.dev"}
 
-      iex> Z.uri()
+      iex> Z.url()
       iex> |> Z.parse("not a uri")
       iex> |> unwrap_issue_message()
       "is invalid"
 
   A host is always required:
 
-      iex> Z.uri()
+      iex> Z.url()
       iex> |> Z.parse("/relative/path")
       iex> |> unwrap_issue_message()
       "host is required"
 
-      iex> Z.uri()
+      iex> Z.url()
       iex> |> Z.parse("urn:isbn:0451450523")
       iex> |> unwrap_issue_message()
       "host is required"
@@ -1936,118 +1936,118 @@ defmodule Zot do
   You can forbid loopback addresses (`localhost`, `*.localhost`,
   `127.x.x.x`, `::1`):
 
-      iex> Z.uri(allow_loopback: false)
+      iex> Z.url(allow_loopback: false)
       iex> |> Z.parse("https://localhost/path")
       iex> |> unwrap_issue_message()
       "loopback addresses are not allowed"
 
-      iex> Z.uri(allow_loopback: false)
+      iex> Z.url(allow_loopback: false)
       iex> |> Z.parse("https://foo.localhost/path")
       iex> |> unwrap_issue_message()
       "loopback addresses are not allowed"
 
-      iex> Z.uri(allow_loopback: false)
+      iex> Z.url(allow_loopback: false)
       iex> |> Z.parse("https://127.0.0.1/path")
       iex> |> unwrap_issue_message()
       "loopback addresses are not allowed"
 
-      iex> Z.uri(allow_loopback: false)
+      iex> Z.url(allow_loopback: false)
       iex> |> Z.parse("https://[::1]/path")
       iex> |> unwrap_issue_message()
       "loopback addresses are not allowed"
 
-      iex> Z.uri(allow_loopback: false)
+      iex> Z.url(allow_loopback: false)
       iex> |> Z.parse("https://example.com/path")
       {:ok, "https://example.com/path"}
 
   You can require a non-root path:
 
-      iex> Z.uri(require_path: true)
+      iex> Z.url(require_path: true)
       iex> |> Z.parse("https://example.com/foo")
       {:ok, "https://example.com/foo"}
 
-      iex> Z.uri(require_path: true)
+      iex> Z.url(require_path: true)
       iex> |> Z.parse("https://example.com")
       iex> |> unwrap_issue_message()
       "path is required"
 
-      iex> Z.uri(require_path: true)
+      iex> Z.url(require_path: true)
       iex> |> Z.parse("https://example.com/")
       iex> |> unwrap_issue_message()
       "path is required"
 
   You can restrict which ports are allowed or forbidden:
 
-      iex> Z.uri(allowed_ports: [80, 8080])
+      iex> Z.url(allowed_ports: [80, 8080])
       iex> |> Z.parse("https://example.com:8080/path")
       {:ok, "https://example.com:8080/path"}
 
-      iex> Z.uri(allowed_ports: [80, 443])
+      iex> Z.url(allowed_ports: [80, 443])
       iex> |> Z.parse("https://example.com:9090/path")
       iex> |> unwrap_issue_message()
       "port must be 80 or 443, got 9090"
 
-      iex> Z.uri(forbidden_ports: [25])
+      iex> Z.url(forbidden_ports: [25])
       iex> |> Z.parse("https://example.com:25/path")
       iex> |> unwrap_issue_message()
       "port 25 is not allowed"
 
-      iex> Z.uri(allowed_ports: [80, 443])
+      iex> Z.url(allowed_ports: [80, 443])
       iex> |> Z.parse("https://example.com")
       {:ok, "https://example.com"}
 
   You can enforce a limited set of allowed schemes:
 
-      iex> Z.uri(allowed_schemes: ["http", "https"])
+      iex> Z.url(allowed_schemes: ["http", "https"])
       iex> |> Z.parse("ftp://zot.dev")
       iex> |> unwrap_issue_message()
       "scheme must be 'http' or 'https', got 'ftp'"
 
   You can specify whether query strings are forbidden, should be
-  trimmed out from the URI, or kept (default):
+  trimmed out from the URL, or kept (default):
 
-      iex> Z.uri(query_string: :keep)
+      iex> Z.url(query_string: :keep)
       iex> |> Z.parse("https://zot.dev?page=1")
       {:ok, "https://zot.dev?page=1"}
 
-      iex> Z.uri(query_string: :forbid)
+      iex> Z.url(query_string: :forbid)
       iex> |> Z.parse("https://zot.dev?page=1")
       iex> |> unwrap_issue_message()
       "query string is not allowed"
 
-      iex> Z.uri(query_string: :trim)
+      iex> Z.url(query_string: :trim)
       iex> |> Z.parse("https://zot.dev?page=1")
       {:ok, "https://zot.dev"}
 
   You can specify whether trailing slashes should always be present,
   should be kept if present (default), or should be trimmed out:
 
-      iex> Z.uri(trailing_slash: :always)
+      iex> Z.url(trailing_slash: :always)
       iex> |> Z.parse("https://zot.dev/path")
       {:ok, "https://zot.dev/path/"}
 
-      iex> Z.uri(trailing_slash: :always)
+      iex> Z.url(trailing_slash: :always)
       iex> |> Z.parse("https://zot.dev/path/")
       {:ok, "https://zot.dev/path/"}
 
-      iex> Z.uri(trailing_slash: :trim)
+      iex> Z.url(trailing_slash: :trim)
       iex> |> Z.parse("https://zot.dev/path/")
       {:ok, "https://zot.dev/path"}
 
-      iex> Z.uri(trailing_slash: :keep)
+      iex> Z.url(trailing_slash: :keep)
       iex> |> Z.parse("https://zot.dev/path")
       {:ok, "https://zot.dev/path"}
 
-      iex> Z.uri(trailing_slash: :keep)
+      iex> Z.url(trailing_slash: :keep)
       iex> |> Z.parse("https://zot.dev/path/")
       {:ok, "https://zot.dev/path/"}
 
-      iex> Z.uri(trailing_slash: :trim)
+      iex> Z.url(trailing_slash: :trim)
       iex> |> Z.parse("https://zot.dev/path")
       {:ok, "https://zot.dev/path"}
 
   """
-  defdelegate uri(opts \\ []), to: Zot.Type.URI, as: :new
+  defdelegate url(opts \\ []), to: Zot.Type.URL, as: :new
 
   @doc ~S"""
   Creates a UUID type.
@@ -2126,11 +2126,11 @@ defmodule Zot do
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
   @doc ~S"""
-  Controls whether loopback addresses are allowed in URIs.
+  Controls whether loopback addresses are allowed in URLs.
 
-  See `uri/1` for more details.
+  See `url/1` for more details.
   """
-  defdelegate allow_loopback(type, value \\ true), to: Zot.Type.URI
+  defdelegate allow_loopback(type, value \\ true), to: Zot.Type.URL
 
   @doc ~S"""
   Constraint phone numbers to a limited set of country codes.
@@ -2140,18 +2140,18 @@ defmodule Zot do
   defdelegate allowed_country_codes(type, value, opts \\ []), to: Zot.Type.Phone
 
   @doc ~S"""
-  Enforces that the URI has one of the given allowed schemes.
+  Enforces that the URL has one of the given allowed schemes.
 
-  See `uri/1` for more details.
+  See `url/1` for more details.
   """
-  defdelegate allowed_schemes(type, value, opts \\ []), to: Zot.Type.URI
+  defdelegate allowed_schemes(type, value, opts \\ []), to: Zot.Type.URL
 
   @doc ~S"""
-  Restricts which ports are allowed in a URI.
+  Restricts which ports are allowed in a URL.
 
-  See `uri/1` for more details.
+  See `url/1` for more details.
   """
-  defdelegate allowed_ports(type, value, opts \\ []), to: Zot.Type.URI
+  defdelegate allowed_ports(type, value, opts \\ []), to: Zot.Type.URL
 
   @doc ~S"""
   Wraps the parsed value in a branded tuple.
@@ -2215,11 +2215,11 @@ defmodule Zot do
   def example(type(_) = type, example), do: %{type | example: example}
 
   @doc ~S"""
-  Restricts which ports are forbidden in a URI.
+  Restricts which ports are forbidden in a URL.
 
-  See `uri/1` for more details.
+  See `url/1` for more details.
   """
-  defdelegate forbidden_ports(type, value, opts \\ []), to: Zot.Type.URI
+  defdelegate forbidden_ports(type, value, opts \\ []), to: Zot.Type.URL
 
   @doc ~S"""
   Defines the behavior for leading plus signs in phone numbers.
@@ -2236,11 +2236,11 @@ defmodule Zot do
   def length(%Zot.Type.String{} = type, value, opts), do: Zot.Type.String.length(type, value, opts)
 
   @doc ~S"""
-  Defines the behavior regarding query strings in URIs.
+  Defines the behavior regarding query strings in URLs.
 
-  See `uri/1` for more details.
+  See `url/1` for more details.
   """
-  defdelegate query_string(type, value, opts \\ []), to: Zot.Type.URI
+  defdelegate query_string(type, value, opts \\ []), to: Zot.Type.URL
 
   @doc ~S"""
   Enforces a maximum value for the given type.
@@ -2481,11 +2481,11 @@ defmodule Zot do
   def regex(%Zot.Type.String{} = type, value, opts), do: Zot.Type.String.regex(type, value, opts)
 
   @doc ~S"""
-  Requires that the URI has a non-root path.
+  Requires that the URL has a non-root path.
 
-  See `uri/1` for more details.
+  See `url/1` for more details.
   """
-  defdelegate require_path(type, value \\ true), to: Zot.Type.URI
+  defdelegate require_path(type, value \\ true), to: Zot.Type.URL
 
   @doc ~S"""
   Enforces that the string starts with the given substring.
@@ -2494,11 +2494,11 @@ defmodule Zot do
   def starts_with(%Zot.Type.String{} = type, value, opts), do: Zot.Type.String.starts_with(type, value, opts)
 
   @doc ~S"""
-  Defines the behavior regarding trailing slashes in URIs.
+  Defines the behavior regarding trailing slashes in URLs.
 
-  See `uri/1` for more details.
+  See `url/1` for more details.
   """
-  defdelegate trailing_slash(type, value), to: Zot.Type.URI
+  defdelegate trailing_slash(type, value), to: Zot.Type.URL
 
   @doc ~S"""
   Adds a transformation to the given type's effects pipeline, which

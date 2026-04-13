@@ -1,6 +1,6 @@
-defmodule Zot.Type.URI do
+defmodule Zot.Type.URL do
   @moduledoc ~S"""
-  Describes a URI string type.
+  Describes a URL string type.
   """
 
   use Zot.Template
@@ -13,15 +13,15 @@ defmodule Zot.Type.URI do
           query_string:    [t: Zot.Parameterized.t(:keep | :forbid | :trim), default: :keep],
           trailing_slash:  [t: :always | :keep | :trim,                      default: :keep]
 
-  def allow_loopback(%Zot.Type.URI{} = type, value \\ true)
+  def allow_loopback(%Zot.Type.URL{} = type, value \\ true)
       when is_boolean(value),
       do: %{type | allow_loopback: value}
 
   @opts error: "scheme must be %{expected}, got %{actual}"
   def allowed_schemes(type, value, opts \\ [])
-  def allowed_schemes(%Zot.Type.URI{} = type, nil, _), do: %{type | allowed_schemes: nil}
+  def allowed_schemes(%Zot.Type.URL{} = type, nil, _), do: %{type | allowed_schemes: nil}
 
-  def allowed_schemes(%Zot.Type.URI{} = type, value, opts)
+  def allowed_schemes(%Zot.Type.URL{} = type, value, opts)
       when is_list(value) do
     unless Enum.all?(value, &(is_binary(&1) and String.length(&1) > 0)) do
       raise ArgumentError,
@@ -33,9 +33,9 @@ defmodule Zot.Type.URI do
 
   @opts error: "port must be %{expected}, got %{actual}"
   def allowed_ports(type, value, opts \\ [])
-  def allowed_ports(%Zot.Type.URI{} = type, nil, _), do: %{type | allowed_ports: nil}
+  def allowed_ports(%Zot.Type.URL{} = type, nil, _), do: %{type | allowed_ports: nil}
 
-  def allowed_ports(%Zot.Type.URI{forbidden_ports: fp} = type, value, opts)
+  def allowed_ports(%Zot.Type.URL{forbidden_ports: fp} = type, value, opts)
       when is_list(value) do
     if fp, do: raise(ArgumentError, "cannot set allowed_ports when forbidden_ports is already set")
 
@@ -49,9 +49,9 @@ defmodule Zot.Type.URI do
 
   @opts error: "port %{actual} is not allowed"
   def forbidden_ports(type, value, opts \\ [])
-  def forbidden_ports(%Zot.Type.URI{} = type, nil, _), do: %{type | forbidden_ports: nil}
+  def forbidden_ports(%Zot.Type.URL{} = type, nil, _), do: %{type | forbidden_ports: nil}
 
-  def forbidden_ports(%Zot.Type.URI{allowed_ports: ap} = type, value, opts)
+  def forbidden_ports(%Zot.Type.URL{allowed_ports: ap} = type, value, opts)
       when is_list(value) do
     if ap, do: raise(ArgumentError, "cannot set forbidden_ports when allowed_ports is already set")
 
@@ -63,25 +63,25 @@ defmodule Zot.Type.URI do
     %{type | forbidden_ports: p(value, @opts, opts)}
   end
 
-  def require_path(%Zot.Type.URI{} = type, value \\ true)
+  def require_path(%Zot.Type.URL{} = type, value \\ true)
       when is_boolean(value),
       do: %{type | require_path: value}
 
   @opts error: "query string is not allowed"
-  def query_string(%Zot.Type.URI{} = type, value, opts \\ [])
+  def query_string(%Zot.Type.URL{} = type, value, opts \\ [])
       when value in [:forbid, :keep, :trim],
       do: %{type | query_string: p(value, @opts, opts)}
 
-  def trailing_slash(%Zot.Type.URI{} = type, value)
+  def trailing_slash(%Zot.Type.URL{} = type, value)
       when value in [:always, :keep, :trim],
       do: %{type | trailing_slash: value}
 end
 
-defimpl Zot.Type, for: Zot.Type.URI do
+defimpl Zot.Type, for: Zot.Type.URL do
   use Zot.Commons
 
   @impl Zot.Type
-  def parse(%Zot.Type.URI{} = type, value, _) do
+  def parse(%Zot.Type.URL{} = type, value, _) do
     with :ok <- validate_type(value, is: "string"),
          {:ok, value} <- parse_uri(value),
          :ok <- validate_inclusion(value.scheme, type.allowed_schemes),
@@ -95,7 +95,7 @@ defimpl Zot.Type, for: Zot.Type.URI do
   end
 
   @impl Zot.Type
-  def json_schema(%Zot.Type.URI{} = type) do
+  def json_schema(%Zot.Type.URL{} = type) do
     %{
       "description" => type.description,
       "examples" => maybe_examples(type.example),
