@@ -5,12 +5,17 @@ defmodule Zot.Type.URI do
 
   use Zot.Template
 
-  deftype allowed_schemes: [t: Zot.Parameterized.t([String.t(), ...]) | nil],
+  deftype allow_loopback:  [t: boolean,                                      default: true],
+          allowed_schemes: [t: Zot.Parameterized.t([String.t(), ...]) | nil],
           allowed_ports:   [t: Zot.Parameterized.t([pos_integer, ...]) | nil],
           forbidden_ports: [t: Zot.Parameterized.t([pos_integer, ...]) | nil],
           require_path:    [t: boolean,                                      default: false],
           query_string:    [t: Zot.Parameterized.t(:keep | :forbid | :trim), default: :keep],
           trailing_slash:  [t: :always | :keep | :trim,                      default: :keep]
+
+  def allow_loopback(%Zot.Type.URI{} = type, value \\ true)
+      when is_boolean(value),
+      do: %{type | allow_loopback: value}
 
   @opts error: "scheme must be %{expected}, got %{actual}"
   def allowed_schemes(type, value, opts \\ [])
@@ -81,6 +86,7 @@ defimpl Zot.Type, for: Zot.Type.URI do
          {:ok, value} <- parse_uri(value),
          :ok <- validate_inclusion(value.scheme, type.allowed_schemes),
          :ok <- validate_host(value),
+         :ok <- validate_loopback(value, type.allow_loopback),
          :ok <- validate_port(value, type.allowed_ports, type.forbidden_ports),
          :ok <- validate_path_required(value, type.require_path),
          {:ok, value} <- validate_query_string(value, type.query_string),
@@ -106,6 +112,17 @@ defimpl Zot.Type, for: Zot.Type.URI do
 
   defp validate_host(%URI{host: host}) when is_binary(host) and byte_size(host) > 0, do: :ok
   defp validate_host(_), do: {:error, [issue("host is required")]}
+
+  defp validate_loopback(_, true), do: :ok
+
+  defp validate_loopback(%URI{host: host}, false) do
+    cond do
+      host == "localhost" -> {:error, [issue("loopback addresses are not allowed")]}
+      String.ends_with?(host, ".localhost") -> {:error, [issue("loopback addresses are not allowed")]}
+      Zot.Ip.is_ip?(host) and Zot.Ip.loopback?(host) -> {:error, [issue("loopback addresses are not allowed")]}
+      true -> :ok
+    end
+  end
 
   defp validate_port(_, nil, nil), do: :ok
   defp validate_port(%URI{port: nil}, _, _), do: :ok

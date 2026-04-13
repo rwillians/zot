@@ -1933,6 +1933,33 @@ defmodule Zot do
       iex> |> unwrap_issue_message()
       "host is required"
 
+  You can forbid loopback addresses (`localhost`, `*.localhost`,
+  `127.x.x.x`, `::1`):
+
+      iex> Z.uri(allow_loopback: false)
+      iex> |> Z.parse("https://localhost/path")
+      iex> |> unwrap_issue_message()
+      "loopback addresses are not allowed"
+
+      iex> Z.uri(allow_loopback: false)
+      iex> |> Z.parse("https://foo.localhost/path")
+      iex> |> unwrap_issue_message()
+      "loopback addresses are not allowed"
+
+      iex> Z.uri(allow_loopback: false)
+      iex> |> Z.parse("https://127.0.0.1/path")
+      iex> |> unwrap_issue_message()
+      "loopback addresses are not allowed"
+
+      iex> Z.uri(allow_loopback: false)
+      iex> |> Z.parse("https://[::1]/path")
+      iex> |> unwrap_issue_message()
+      "loopback addresses are not allowed"
+
+      iex> Z.uri(allow_loopback: false)
+      iex> |> Z.parse("https://example.com/path")
+      {:ok, "https://example.com/path"}
+
   You can require a non-root path:
 
       iex> Z.uri(require_path: true)
@@ -2097,6 +2124,13 @@ defmodule Zot do
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
   # MODIFIERS                                                       #
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+  @doc ~S"""
+  Controls whether loopback addresses are allowed in URIs.
+
+  See `uri/1` for more details.
+  """
+  defdelegate allow_loopback(type, value \\ true), to: Zot.Type.URI
 
   @doc ~S"""
   Constraint phone numbers to a limited set of country codes.

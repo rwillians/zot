@@ -100,4 +100,54 @@ defmodule Zot.Type.URITest do
       end
     end
   end
+
+  describe "allow_loopback" do
+    test "default (true) allows loopback addresses" do
+      assert {:ok, _} = Z.uri() |> Z.parse("https://localhost/path")
+      assert {:ok, _} = Z.uri() |> Z.parse("https://127.0.0.1/path")
+    end
+
+    test "rejects localhost when disallowed" do
+      assert {:error, [issue]} =
+               Z.uri(allow_loopback: false) |> Z.parse("https://localhost/path")
+
+      assert Exception.message(issue) == "loopback addresses are not allowed"
+    end
+
+    test "rejects subdomain of localhost when disallowed" do
+      assert {:error, [issue]} =
+               Z.uri(allow_loopback: false) |> Z.parse("https://foo.localhost/path")
+
+      assert Exception.message(issue) == "loopback addresses are not allowed"
+    end
+
+    test "rejects 127.x.x.x when disallowed" do
+      assert {:error, [issue]} =
+               Z.uri(allow_loopback: false) |> Z.parse("https://127.0.0.1/path")
+
+      assert Exception.message(issue) == "loopback addresses are not allowed"
+
+      assert {:error, [issue]} =
+               Z.uri(allow_loopback: false) |> Z.parse("https://127.255.0.1/path")
+
+      assert Exception.message(issue) == "loopback addresses are not allowed"
+    end
+
+    test "rejects ::1 when disallowed" do
+      assert {:error, [issue]} =
+               Z.uri(allow_loopback: false) |> Z.parse("https://[::1]/path")
+
+      assert Exception.message(issue) == "loopback addresses are not allowed"
+    end
+
+    test "allows non-loopback addresses when disallowed" do
+      assert {:ok, "https://example.com/path"} =
+               Z.uri(allow_loopback: false) |> Z.parse("https://example.com/path")
+    end
+
+    test "allows non-loopback IPs when disallowed" do
+      assert {:ok, "https://8.8.8.8/path"} =
+               Z.uri(allow_loopback: false) |> Z.parse("https://8.8.8.8/path")
+    end
+  end
 end
