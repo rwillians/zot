@@ -1933,6 +1933,22 @@ defmodule Zot do
       iex> |> unwrap_issue_message()
       "host is required"
 
+  You can require a non-root path:
+
+      iex> Z.uri(require_path: true)
+      iex> |> Z.parse("https://example.com/foo")
+      {:ok, "https://example.com/foo"}
+
+      iex> Z.uri(require_path: true)
+      iex> |> Z.parse("https://example.com")
+      iex> |> unwrap_issue_message()
+      "path is required"
+
+      iex> Z.uri(require_path: true)
+      iex> |> Z.parse("https://example.com/")
+      iex> |> unwrap_issue_message()
+      "path is required"
+
   You can enforce a limited set of allowed schemes:
 
       iex> Z.uri(allowed_schemes: ["http", "https"])
@@ -2395,6 +2411,13 @@ defmodule Zot do
   """
   def regex(type, value, opts \\ [])
   def regex(%Zot.Type.String{} = type, value, opts), do: Zot.Type.String.regex(type, value, opts)
+
+  @doc ~S"""
+  Requires that the URI has a non-root path.
+
+  See `uri/1` for more details.
+  """
+  defdelegate require_path(type, value \\ true), to: Zot.Type.URI
 
   @doc ~S"""
   Enforces that the string starts with the given substring.
