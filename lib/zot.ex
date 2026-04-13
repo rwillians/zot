@@ -1921,22 +1921,6 @@ defmodule Zot do
       iex> |> unwrap_issue_message()
       "is invalid"
 
-  You can require that the URI has a host:
-
-      iex> Z.uri(require_host: true)
-      iex> |> Z.parse("https://example.com")
-      {:ok, "https://example.com"}
-
-      iex> Z.uri(require_host: true)
-      iex> |> Z.parse("/relative/path")
-      iex> |> unwrap_issue_message()
-      "host is required"
-
-      iex> Z.uri(require_host: true)
-      iex> |> Z.parse("urn:isbn:0451450523")
-      iex> |> unwrap_issue_message()
-      "host is required"
-
   You can enforce a limited set of allowed schemes:
 
       iex> Z.uri(allowed_schemes: ["http", "https"])
@@ -2399,13 +2383,6 @@ defmodule Zot do
   """
   def regex(type, value, opts \\ [])
   def regex(%Zot.Type.String{} = type, value, opts), do: Zot.Type.String.regex(type, value, opts)
-
-  @doc ~S"""
-  Requires that the URI has a host.
-
-  See `uri/1` for more details.
-  """
-  defdelegate require_host(type, value \\ true), to: Zot.Type.URI
 
   @doc ~S"""
   Enforces that the string starts with the given substring.
