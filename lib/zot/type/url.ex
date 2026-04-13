@@ -6,11 +6,11 @@ defmodule Zot.Type.URL do
   use Zot.Template
 
   deftype allow_loopback:  [t: boolean,                                      default: true],
-          allowed_schemes: [t: Zot.Parameterized.t([String.t(), ...]) | nil],
-          allowed_ports:   [t: Zot.Parameterized.t([pos_integer, ...]) | nil],
-          forbidden_ports: [t: Zot.Parameterized.t([pos_integer, ...]) | nil],
-          require_path:    [t: boolean,                                      default: false],
+          allowed_schemes: [t: Zot.Parameterized.t([String.t(), ...]) | nil,  default: nil],
+          allowed_ports:   [t: Zot.Parameterized.t([pos_integer, ...]) | nil, default: nil],
+          forbidden_ports: [t: Zot.Parameterized.t([pos_integer, ...]) | nil, default: nil],
           query_string:    [t: Zot.Parameterized.t(:keep | :forbid | :trim), default: :keep],
+          require_path:    [t: boolean,                                      default: false],
           trailing_slash:  [t: :always | :keep | :trim,                      default: :keep]
 
   def allow_loopback(%Zot.Type.URL{} = type, value \\ true)
