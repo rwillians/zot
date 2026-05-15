@@ -1,7 +1,7 @@
 defmodule Zot.MixProject do
   use Mix.Project
 
-  @version "0.11.0"
+  @version "0.12.0"
   @github "https://github.com/rwillians/zot"
 
   @description """
@@ -77,7 +77,7 @@ defmodule Zot.MixProject do
     [
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.39", only: [:dev, :docs], runtime: false},
-      {:decimal, "~> 2.0"}
+      {:decimal, ">= 2.0.0"}
     ]
   end
 
