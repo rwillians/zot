@@ -76,7 +76,7 @@ defmodule Zot.MixProject do
   defp deps do
     [
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
-      {:ex_doc, "~> 0.39", only: [:dev, :docs], runtime: false},
+      {:ex_doc, "~> 0.39.3", only: [:dev, :docs], runtime: false},
       {:decimal, ">= 2.0.0"}
     ]
   end
