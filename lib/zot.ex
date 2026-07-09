@@ -42,13 +42,53 @@ defmodule Zot do
 
   @doc ~S"""
   Parses the given input according to the given type.
+
+  ## Options
+
+  - `:coerce` - when `true`, values are converted from related types
+    (e.g. `"42"` → `42` for integers). See each type's documentation
+    for its coercion rules.
+  - `:recase` - when `true`, map and struct input keys in camelCase,
+    PascalCase or kebab-case are converted to snake_case before the
+    fields are validated. Applies to nested maps and structs as well.
+
+  ## Examples
+
+      iex> Z.map(%{first_name: Z.string()})
+      iex> |> Z.parse(%{"firstName" => "Alice"}, recase: true)
+      {:ok, %{first_name: "Alice"}}
+
+      iex> Z.map(%{first_name: Z.string()})
+      iex> |> Z.parse(%{"FirstName" => "Alice"}, recase: true)
+      {:ok, %{first_name: "Alice"}}
+
+      iex> Z.map(%{first_name: Z.string()})
+      iex> |> Z.parse(%{"first-name" => "Alice"}, recase: true)
+      {:ok, %{first_name: "Alice"}}
+
+  Keys that are already snake_case are unaffected:
+
+      iex> Z.map(%{first_name: Z.string()})
+      iex> |> Z.parse(%{"first_name" => "Alice"}, recase: true)
+      {:ok, %{first_name: "Alice"}}
+
+  Recasing applies to nested maps and structs as well:
+
+      iex> Z.map(%{home_address: Z.map(%{zip_code: Z.string()})})
+      iex> |> Z.parse(%{"homeAddress" => %{"zipCode" => "12345"}}, recase: true)
+      {:ok, %{home_address: %{zip_code: "12345"}}}
+
+      iex> Z.struct(ZotTest.StructProfile, %{first_name: Z.string(), last_name: Z.string()})
+      iex> |> Z.parse(%{"firstName" => "Alice", "last-name" => "Liddell"}, recase: true)
+      {:ok, %ZotTest.StructProfile{first_name: "Alice", last_name: "Liddell"}}
+
   """
   @spec parse(type, input, [option]) ::
           {:ok, output}
           | {:error, [Zot.Issue.t(), ...]}
         when type: Zot.Type.t(),
              input: term,
-             option: {:coerce, boolean | :unsafe},
+             option: {:coerce, boolean | :unsafe} | {:recase, boolean},
              output: term
 
   def parse(%_{} = type, input, opts \\ []) do
@@ -1689,7 +1729,7 @@ defmodule Zot do
       do: Zot.Type.Struct.new(module: module, shape: Enum.into(shape, %{}))
 
   def struct(%Zot.Type.Map{} = map, module) when is_atom(module) do
-    Zot.Type.Struct.new(module: module, shape: map.shape, allow_recase: map.allow_recase)
+    Zot.Type.Struct.new(module: module, shape: map.shape)
     |> Map.put(:required, map.required)
     |> default(map.default)
     |> describe(map.description)
@@ -2160,48 +2200,6 @@ defmodule Zot do
   See `url/1` for more details.
   """
   defdelegate allow_loopback(type, value \\ true), to: Zot.Type.URL
-
-  @doc ~S"""
-  Allows map and struct keys to be recased before validation.
-
-  When enabled, input keys in camelCase, PascalCase or kebab-case are
-  converted to snake_case before the fields are validated.
-
-  ## Examples
-
-      iex> Z.map(%{first_name: Z.string()})
-      iex> |> Z.allow_recase()
-      iex> |> Z.parse(%{"firstName" => "Alice"})
-      {:ok, %{first_name: "Alice"}}
-
-      iex> Z.map(%{first_name: Z.string()})
-      iex> |> Z.allow_recase()
-      iex> |> Z.parse(%{"FirstName" => "Alice"})
-      {:ok, %{first_name: "Alice"}}
-
-      iex> Z.map(%{first_name: Z.string()})
-      iex> |> Z.allow_recase()
-      iex> |> Z.parse(%{"first-name" => "Alice"})
-      {:ok, %{first_name: "Alice"}}
-
-  Keys that are already snake_case are unaffected:
-
-      iex> Z.map(%{first_name: Z.string()})
-      iex> |> Z.allow_recase()
-      iex> |> Z.parse(%{"first_name" => "Alice"})
-      {:ok, %{first_name: "Alice"}}
-
-  It also works with struct types:
-
-      iex> Z.struct(ZotTest.StructProfile, %{first_name: Z.string(), last_name: Z.string()})
-      iex> |> Z.allow_recase()
-      iex> |> Z.parse(%{"firstName" => "Alice", "last-name" => "Liddell"})
-      {:ok, %ZotTest.StructProfile{first_name: "Alice", last_name: "Liddell"}}
-
-  """
-  def allow_recase(type, value \\ true)
-  def allow_recase(%Zot.Type.Map{} = type, value), do: Zot.Type.Map.allow_recase(type, value)
-  def allow_recase(%Zot.Type.Struct{} = type, value), do: Zot.Type.Struct.allow_recase(type, value)
 
   @doc ~S"""
   Constraint phone numbers to a limited set of country codes.

@@ -221,29 +221,27 @@ defmodule Zot.Type.MapTest do
     end
   end
 
-  describe "allow_recase" do
+  describe "recase option" do
     test "recases camelCase, PascalCase and kebab-case keys to snake_case" do
-      type =
-        Z.map(%{first_name: Z.string(), last_name: Z.string(), home_address: Z.string()})
-        |> Z.allow_recase()
+      type = Z.map(%{first_name: Z.string(), last_name: Z.string(), home_address: Z.string()})
 
       input = %{"firstName" => "Alice", "LastName" => "Liddell", "home-address" => "Wonderland"}
 
       assert {:ok, %{first_name: "Alice", last_name: "Liddell", home_address: "Wonderland"}} =
-               type |> Z.parse(input)
+               type |> Z.parse(input, recase: true)
     end
 
     test "recases atom keys" do
-      type = Z.map(%{first_name: Z.string()}) |> Z.allow_recase()
+      type = Z.map(%{first_name: Z.string()})
 
-      assert {:ok, %{first_name: "Alice"}} = type |> Z.parse(%{firstName: "Alice"})
+      assert {:ok, %{first_name: "Alice"}} = type |> Z.parse(%{firstName: "Alice"}, recase: true)
     end
 
     test "leaves snake_case keys untouched" do
-      type = Z.map(%{first_name: Z.string()}) |> Z.allow_recase()
+      type = Z.map(%{first_name: Z.string()})
 
-      assert {:ok, %{first_name: "Alice"}} = type |> Z.parse(%{first_name: "Alice"})
-      assert {:ok, %{first_name: "Alice"}} = type |> Z.parse(%{"first_name" => "Alice"})
+      assert {:ok, %{first_name: "Alice"}} = type |> Z.parse(%{first_name: "Alice"}, recase: true)
+      assert {:ok, %{first_name: "Alice"}} = type |> Z.parse(%{"first_name" => "Alice"}, recase: true)
     end
 
     test "is disabled by default" do
@@ -254,37 +252,35 @@ defmodule Zot.Type.MapTest do
     end
 
     test "can be explicitly disabled" do
-      type = Z.map(%{first_name: Z.string()}) |> Z.allow_recase(false)
+      type = Z.map(%{first_name: Z.string()})
 
-      assert {:error, [_issue]} = type |> Z.parse(%{"firstName" => "Alice"})
+      assert {:error, [_issue]} = type |> Z.parse(%{"firstName" => "Alice"}, recase: false)
     end
 
     test "recases before strict mode checks unknown fields" do
-      type = Z.strict_map(%{first_name: Z.string()}) |> Z.allow_recase()
+      type = Z.strict_map(%{first_name: Z.string()})
 
-      assert {:ok, %{first_name: "Alice"}} = type |> Z.parse(%{"firstName" => "Alice"})
+      assert {:ok, %{first_name: "Alice"}} = type |> Z.parse(%{"firstName" => "Alice"}, recase: true)
 
-      assert {:error, [issue]} = type |> Z.parse(%{"firstName" => "Alice", "lastName" => "Liddell"})
+      assert {:error, [issue]} =
+               type |> Z.parse(%{"firstName" => "Alice", "lastName" => "Liddell"}, recase: true)
+
       assert issue.path == ["last_name"]
       assert Exception.message(issue) == "unknown field"
     end
 
-    test "does not recase keys of nested maps" do
-      type =
-        Z.map(%{home_address: Z.map(%{zip_code: Z.string()})})
-        |> Z.allow_recase()
+    test "recases keys of nested maps" do
+      type = Z.map(%{home_address: Z.map(%{zip_code: Z.string()})})
 
-      assert {:error, [issue]} = type |> Z.parse(%{"homeAddress" => %{"zipCode" => "12345"}})
-      assert issue.path == [:home_address, :zip_code]
+      assert {:ok, %{home_address: %{zip_code: "12345"}}} =
+               type |> Z.parse(%{"homeAddress" => %{"zipCode" => "12345"}}, recase: true)
     end
 
-    test "is preserved by partial" do
-      type =
-        Z.map(%{first_name: Z.string(), age: Z.int()})
-        |> Z.allow_recase()
-        |> Z.partial(compact: true)
+    test "composes with coercion" do
+      type = Z.map(%{max_score: Z.int()})
 
-      assert {:ok, %{first_name: "Alice"}} = type |> Z.parse(%{"firstName" => "Alice"})
+      assert {:ok, %{max_score: 42}} =
+               type |> Z.parse(%{"maxScore" => "42"}, recase: true, coerce: true)
     end
   end
 

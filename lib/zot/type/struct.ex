@@ -6,9 +6,8 @@ defmodule Zot.Type.Struct do
 
   use Zot.Template
 
-  deftype module:       [t: module],
-          shape:        [t: map],
-          allow_recase: [t: boolean, default: false]
+  deftype module: [t: module],
+          shape:  [t: map]
 
   def module(%Zot.Type.Struct{} = type, module)
       when is_atom(module),
@@ -17,10 +16,6 @@ defmodule Zot.Type.Struct do
   def shape(%Zot.Type.Struct{} = type, shape)
       when is_non_struct_map(shape),
       do: %{type | shape: shape}
-
-  def allow_recase(%Zot.Type.Struct{} = type, value \\ true)
-      when is_boolean(value),
-      do: %{type | allow_recase: value}
 end
 
 defimpl Zot.Type, for: Zot.Type.Struct do
@@ -28,7 +23,7 @@ defimpl Zot.Type, for: Zot.Type.Struct do
 
   @impl Zot.Type
   def parse(%Zot.Type.Struct{} = type, value, opts) do
-    map_type = Zot.Type.Map.new(mode: :strict, shape: type.shape, allow_recase: type.allow_recase)
+    map_type = Zot.Type.Map.new(mode: :strict, shape: type.shape)
 
     case Zot.Type.parse(map_type, value, opts) do
       {:ok, result} -> {:ok, struct!(type.module, result)}
