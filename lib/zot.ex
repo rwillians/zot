@@ -1689,7 +1689,7 @@ defmodule Zot do
       do: Zot.Type.Struct.new(module: module, shape: Enum.into(shape, %{}))
 
   def struct(%Zot.Type.Map{} = map, module) when is_atom(module) do
-    Zot.Type.Struct.new(module: module, shape: map.shape)
+    Zot.Type.Struct.new(module: module, shape: map.shape, allow_recase: map.allow_recase)
     |> Map.put(:required, map.required)
     |> default(map.default)
     |> describe(map.description)
@@ -2162,10 +2162,10 @@ defmodule Zot do
   defdelegate allow_loopback(type, value \\ true), to: Zot.Type.URL
 
   @doc ~S"""
-  Allows map keys to be recased before validation.
+  Allows map and struct keys to be recased before validation.
 
   When enabled, input keys in camelCase, PascalCase or kebab-case are
-  converted to snake_case before the map's fields are validated.
+  converted to snake_case before the fields are validated.
 
   ## Examples
 
@@ -2191,8 +2191,17 @@ defmodule Zot do
       iex> |> Z.parse(%{"first_name" => "Alice"})
       {:ok, %{first_name: "Alice"}}
 
+  It also works with struct types:
+
+      iex> Z.struct(ZotTest.StructProfile, %{first_name: Z.string(), last_name: Z.string()})
+      iex> |> Z.allow_recase()
+      iex> |> Z.parse(%{"firstName" => "Alice", "last-name" => "Liddell"})
+      {:ok, %ZotTest.StructProfile{first_name: "Alice", last_name: "Liddell"}}
+
   """
-  defdelegate allow_recase(type, value \\ true), to: Zot.Type.Map
+  def allow_recase(type, value \\ true)
+  def allow_recase(%Zot.Type.Map{} = type, value), do: Zot.Type.Map.allow_recase(type, value)
+  def allow_recase(%Zot.Type.Struct{} = type, value), do: Zot.Type.Struct.allow_recase(type, value)
 
   @doc ~S"""
   Constraint phone numbers to a limited set of country codes.
