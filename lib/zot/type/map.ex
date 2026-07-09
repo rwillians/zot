@@ -5,8 +5,9 @@ defmodule Zot.Type.Map do
 
   use Zot.Template
 
-  deftype shape: [t: map],
-          mode:  [t: :strict | :strip, default: :strip]
+  deftype shape:        [t: map],
+          mode:         [t: :strict | :strip, default: :strip],
+          allow_recase: [t: boolean, default: false]
 
   def shape(%Zot.Type.Map{} = type, shape)
       when is_non_struct_map(shape),
@@ -15,6 +16,10 @@ defmodule Zot.Type.Map do
   def mode(%Zot.Type.Map{} = type, mode)
       when mode in [:strict, :strip],
       do: %{type | mode: mode}
+
+  def allow_recase(%Zot.Type.Map{} = type, value \\ true)
+      when is_boolean(value),
+      do: %{type | allow_recase: value}
 end
 
 defimpl Zot.Type, for: Zot.Type.Map do
@@ -23,7 +28,7 @@ defimpl Zot.Type, for: Zot.Type.Map do
   @impl Zot.Type
   def parse(%Zot.Type.Map{} = type, value, opts) do
     with :ok <- validate_type(value, is: "map"),
-         do: do_parse(value, type, opts)
+         do: do_parse(maybe_recase(value, type), type, opts)
   end
 
   @impl Zot.Type
@@ -91,6 +96,24 @@ defimpl Zot.Type, for: Zot.Type.Map do
 
     value
   end
+
+  defp maybe_recase(input, %Zot.Type.Map{allow_recase: false}), do: input
+
+  defp maybe_recase(input, %Zot.Type.Map{allow_recase: true}) do
+    for {key, value} <- input,
+        into: %{},
+        do: {recase_key(key), value}
+  end
+
+  defp recase_key(key) when is_atom(key), do: recase_key(Atom.to_string(key))
+
+  defp recase_key(key) when is_binary(key) do
+    key
+    |> String.replace("-", "_")
+    |> Macro.underscore()
+  end
+
+  defp recase_key(key), do: key
 
   defp parse_known_fields(shape, map, opts) do
     Enum.reduce(shape, {%{}, []}, fn {key, type}, {acc_parsed, acc_issues} ->

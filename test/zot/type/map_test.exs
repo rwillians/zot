@@ -221,6 +221,73 @@ defmodule Zot.Type.MapTest do
     end
   end
 
+  describe "allow_recase" do
+    test "recases camelCase, PascalCase and kebab-case keys to snake_case" do
+      type =
+        Z.map(%{first_name: Z.string(), last_name: Z.string(), home_address: Z.string()})
+        |> Z.allow_recase()
+
+      input = %{"firstName" => "Alice", "LastName" => "Liddell", "home-address" => "Wonderland"}
+
+      assert {:ok, %{first_name: "Alice", last_name: "Liddell", home_address: "Wonderland"}} =
+               type |> Z.parse(input)
+    end
+
+    test "recases atom keys" do
+      type = Z.map(%{first_name: Z.string()}) |> Z.allow_recase()
+
+      assert {:ok, %{first_name: "Alice"}} = type |> Z.parse(%{firstName: "Alice"})
+    end
+
+    test "leaves snake_case keys untouched" do
+      type = Z.map(%{first_name: Z.string()}) |> Z.allow_recase()
+
+      assert {:ok, %{first_name: "Alice"}} = type |> Z.parse(%{first_name: "Alice"})
+      assert {:ok, %{first_name: "Alice"}} = type |> Z.parse(%{"first_name" => "Alice"})
+    end
+
+    test "is disabled by default" do
+      type = Z.map(%{first_name: Z.string()})
+
+      assert {:error, [issue]} = type |> Z.parse(%{"firstName" => "Alice"})
+      assert issue.path == [:first_name]
+    end
+
+    test "can be explicitly disabled" do
+      type = Z.map(%{first_name: Z.string()}) |> Z.allow_recase(false)
+
+      assert {:error, [_issue]} = type |> Z.parse(%{"firstName" => "Alice"})
+    end
+
+    test "recases before strict mode checks unknown fields" do
+      type = Z.strict_map(%{first_name: Z.string()}) |> Z.allow_recase()
+
+      assert {:ok, %{first_name: "Alice"}} = type |> Z.parse(%{"firstName" => "Alice"})
+
+      assert {:error, [issue]} = type |> Z.parse(%{"firstName" => "Alice", "lastName" => "Liddell"})
+      assert issue.path == ["last_name"]
+      assert Exception.message(issue) == "unknown field"
+    end
+
+    test "does not recase keys of nested maps" do
+      type =
+        Z.map(%{home_address: Z.map(%{zip_code: Z.string()})})
+        |> Z.allow_recase()
+
+      assert {:error, [issue]} = type |> Z.parse(%{"homeAddress" => %{"zipCode" => "12345"}})
+      assert issue.path == [:home_address, :zip_code]
+    end
+
+    test "is preserved by partial" do
+      type =
+        Z.map(%{first_name: Z.string(), age: Z.int()})
+        |> Z.allow_recase()
+        |> Z.partial(compact: true)
+
+      assert {:ok, %{first_name: "Alice"}} = type |> Z.parse(%{"firstName" => "Alice"})
+    end
+  end
+
   describe "merge" do
     test "merges two map types" do
       map1 = Z.map(%{name: Z.string()})

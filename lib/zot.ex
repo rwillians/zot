@@ -7,6 +7,35 @@ defmodule Zot do
 
   alias Zot.Context
 
+  require Zot.Type.Any
+  require Zot.Type.Atom
+  require Zot.Type.Boolean
+  require Zot.Type.Branded
+  require Zot.Type.CIDR
+  require Zot.Type.DateTime
+  require Zot.Type.Date
+  require Zot.Type.Decimal
+  require Zot.Type.DiscriminatedUnion
+  require Zot.Type.Email
+  require Zot.Type.Enum
+  require Zot.Type.Float
+  require Zot.Type.Integer
+  require Zot.Type.IP
+  require Zot.Type.List
+  require Zot.Type.Literal
+  require Zot.Type.Map
+  require Zot.Type.Number
+  require Zot.Type.Numeric
+  require Zot.Type.Phone
+  require Zot.Type.Record
+  require Zot.Type.Set
+  require Zot.Type.String
+  require Zot.Type.Struct
+  require Zot.Type.Tuple
+  require Zot.Type.Union
+  require Zot.Type.URL
+  require Zot.Type.UUID
+
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
   # CORE API                                                        #
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -2131,6 +2160,39 @@ defmodule Zot do
   See `url/1` for more details.
   """
   defdelegate allow_loopback(type, value \\ true), to: Zot.Type.URL
+
+  @doc ~S"""
+  Allows map keys to be recased before validation.
+
+  When enabled, input keys in camelCase, PascalCase or kebab-case are
+  converted to snake_case before the map's fields are validated.
+
+  ## Examples
+
+      iex> Z.map(%{first_name: Z.string()})
+      iex> |> Z.allow_recase()
+      iex> |> Z.parse(%{"firstName" => "Alice"})
+      {:ok, %{first_name: "Alice"}}
+
+      iex> Z.map(%{first_name: Z.string()})
+      iex> |> Z.allow_recase()
+      iex> |> Z.parse(%{"FirstName" => "Alice"})
+      {:ok, %{first_name: "Alice"}}
+
+      iex> Z.map(%{first_name: Z.string()})
+      iex> |> Z.allow_recase()
+      iex> |> Z.parse(%{"first-name" => "Alice"})
+      {:ok, %{first_name: "Alice"}}
+
+  Keys that are already snake_case are unaffected:
+
+      iex> Z.map(%{first_name: Z.string()})
+      iex> |> Z.allow_recase()
+      iex> |> Z.parse(%{"first_name" => "Alice"})
+      {:ok, %{first_name: "Alice"}}
+
+  """
+  defdelegate allow_recase(type, value \\ true), to: Zot.Type.Map
 
   @doc ~S"""
   Constraint phone numbers to a limited set of country codes.
