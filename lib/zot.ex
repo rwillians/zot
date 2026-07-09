@@ -12,8 +12,8 @@ defmodule Zot do
   require Zot.Type.Boolean
   require Zot.Type.Branded
   require Zot.Type.CIDR
-  require Zot.Type.DateTime
   require Zot.Type.Date
+  require Zot.Type.DateTime
   require Zot.Type.Decimal
   require Zot.Type.DiscriminatedUnion
   require Zot.Type.Email
