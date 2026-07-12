@@ -29,6 +29,7 @@ defmodule Zot do
   require Zot.Type.Phone
   require Zot.Type.Record
   require Zot.Type.Set
+  require Zot.Type.SlugRFC1123
   require Zot.Type.String
   require Zot.Type.Struct
   require Zot.Type.Tuple
@@ -1609,6 +1610,97 @@ defmodule Zot do
   def set(type(_) = inner_type, opts \\ []) when is_list(opts), do: Zot.Type.Set.new([{:inner_type, inner_type} | opts])
 
   @doc ~S"""
+  Creates an RFC 1123 slug type.
+
+  A valid slug contains only lowercase alphanumeric characters and
+  hyphens, must start and end with an alphanumeric character and is
+  at most 63 characters long, as per RFC 1123 (DNS label).
+
+  ## Examples
+
+      iex> Z.slug_rfc1123()
+      iex> |> Z.parse("my-blog-post")
+      {:ok, "my-blog-post"}
+
+      iex> Z.slug_rfc1123()
+      iex> |> Z.parse("My Blog Post")
+      iex> |> unwrap_issue_message()
+      "is not a valid RFC 1123 slug"
+
+      iex> Z.slug_rfc1123()
+      iex> |> Z.parse("-leading-hyphen")
+      iex> |> unwrap_issue_message()
+      "is not a valid RFC 1123 slug"
+
+  Can enforce a minimum length (defaults to 1):
+
+      iex> Z.slug_rfc1123(min: 3)
+      iex> |> Z.parse("ab")
+      iex> |> unwrap_issue_message()
+      "must be at least 3 characters long, got 2"
+
+      iex> Z.slug_rfc1123()
+      iex> |> Z.min(3)
+      iex> |> Z.parse("ab")
+      iex> |> unwrap_issue_message()
+      "must be at least 3 characters long, got 2"
+
+  Can enforce a maximum length (defaults to 63, as per RFC):
+
+      iex> Z.slug_rfc1123(max: 10)
+      iex> |> Z.parse("a-very-long-slug")
+      iex> |> unwrap_issue_message()
+      "must be at most 10 characters long, got 16"
+
+      iex> Z.slug_rfc1123()
+      iex> |> Z.max(10)
+      iex> |> Z.parse("a-very-long-slug")
+      iex> |> unwrap_issue_message()
+      "must be at most 10 characters long, got 16"
+
+  Can enforce an exact length:
+
+      iex> Z.slug_rfc1123(length: 5)
+      iex> |> Z.parse("hello-world")
+      iex> |> unwrap_issue_message()
+      "must be 5 characters long, got 11"
+
+      iex> Z.slug_rfc1123()
+      iex> |> Z.length(5)
+      iex> |> Z.parse("hello-world")
+      iex> |> unwrap_issue_message()
+      "must be 5 characters long, got 11"
+
+  You can specify for the string to be trimmed before validation:
+
+      iex> Z.slug_rfc1123(trim: true)
+      iex> |> Z.parse("  hello-world  ")
+      {:ok, "hello-world"}
+
+      iex> Z.slug_rfc1123()
+      iex> |> Z.trim()
+      iex> |> Z.parse("  hello-world  ")
+      {:ok, "hello-world"}
+
+  It can be converted into json schema:
+
+      iex> Z.slug_rfc1123()
+      iex> |> Z.describe("A URL slug.")
+      iex> |> Z.example("my-blog-post")
+      iex> |> Z.json_schema()
+      %{
+        "type" => "string",
+        "description" => "A URL slug.",
+        "examples" => ["my-blog-post"],
+        "minLength" => 1,
+        "maxLength" => 63,
+        "pattern" => "^[a-z0-9]([a-z0-9-]{0,}[a-z0-9])?$"
+      }
+
+  """
+  defdelegate slug_rfc1123(opts \\ []), to: Zot.Type.SlugRFC1123, as: :new
+
+  @doc ~S"""
   Creates a map type where unknown fields cause an issue.
 
   ## Examples
@@ -2302,6 +2394,7 @@ defmodule Zot do
   """
   def length(type, value, opts \\ [])
   def length(%Zot.Type.List{} = type, value, opts), do: Zot.Type.List.length(type, value, opts)
+  def length(%Zot.Type.SlugRFC1123{} = type, value, opts), do: Zot.Type.SlugRFC1123.length(type, value, opts)
   def length(%Zot.Type.String{} = type, value, opts), do: Zot.Type.String.length(type, value, opts)
 
   @doc ~S"""
@@ -2323,6 +2416,7 @@ defmodule Zot do
   def max(%Zot.Type.List{} = type, value, opts), do: Zot.Type.List.max(type, value, opts)
   def max(%Zot.Type.Number{} = type, value, opts), do: Zot.Type.Number.max(type, value, opts)
   def max(%Zot.Type.Numeric{} = type, value, opts), do: Zot.Type.Numeric.max(type, value, opts)
+  def max(%Zot.Type.SlugRFC1123{} = type, value, opts), do: Zot.Type.SlugRFC1123.max(type, value, opts)
   def max(%Zot.Type.String{} = type, value, opts), do: Zot.Type.String.max(type, value, opts)
 
   @doc ~S"""
@@ -2337,6 +2431,7 @@ defmodule Zot do
   def min(%Zot.Type.List{} = type, value, opts), do: Zot.Type.List.min(type, value, opts)
   def min(%Zot.Type.Number{} = type, value, opts), do: Zot.Type.Number.min(type, value, opts)
   def min(%Zot.Type.Numeric{} = type, value, opts), do: Zot.Type.Numeric.min(type, value, opts)
+  def min(%Zot.Type.SlugRFC1123{} = type, value, opts), do: Zot.Type.SlugRFC1123.min(type, value, opts)
   def min(%Zot.Type.String{} = type, value, opts), do: Zot.Type.String.min(type, value, opts)
 
   @doc ~S"""
@@ -2590,7 +2685,9 @@ defmodule Zot do
   Trims whitespace from the beginning and end of the string before
   validation.
   """
-  def trim(%Zot.Type.String{} = type, value \\ true), do: Zot.Type.String.trim(type, value)
+  def trim(type, value \\ true)
+  def trim(%Zot.Type.SlugRFC1123{} = type, value), do: Zot.Type.SlugRFC1123.trim(type, value)
+  def trim(%Zot.Type.String{} = type, value), do: Zot.Type.String.trim(type, value)
 
   @doc ~S"""
   Unwraps a branded type, returning its inner type.
