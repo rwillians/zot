@@ -13,7 +13,7 @@ defmodule Zot.Type.Date do
   @typedoc ~S"""
   Relative date specification.
   """
-  @type relative :: {n :: integer, time_unit, :from_now}
+  @type relative :: {n :: integer, time_unit, from: :now}
 
   @time_units [:day, :week, :month, :year]
 
@@ -24,7 +24,7 @@ defmodule Zot.Type.Date do
   def min(type, value, opts \\ [])
   def min(%Zot.Type.Date{} = type, nil, _), do: %{type | min: nil}
 
-  def min(%Zot.Type.Date{} = type, {n, unit, :from_now} = value, opts)
+  def min(%Zot.Type.Date{} = type, {n, unit, from: :now} = value, opts)
       when is_integer(n) and unit in @time_units,
       do: %{type | min: p(value, @opts, opts)}
 
@@ -38,7 +38,7 @@ defmodule Zot.Type.Date do
   def max(type, value, opts \\ [])
   def max(%Zot.Type.Date{} = type, nil, _), do: %{type | max: nil}
 
-  def max(%Zot.Type.Date{} = type, {n, unit, :from_now} = value, opts)
+  def max(%Zot.Type.Date{} = type, {n, unit, from: :now} = value, opts)
       when is_integer(n) and unit in @time_units,
       do: %{type | max: p(value, @opts, opts)}
 
@@ -95,7 +95,7 @@ defimpl Zot.Type, for: Zot.Type.Date do
 
     frag =
       case min.value do
-        {n, unit, :from_now} -> {:escaped, "#{n} #{unit}s from now"}
+        {n, unit, from: :now} -> {:escaped, "#{n} #{unit}s from now"}
         _ -> expected
       end
 
@@ -112,7 +112,7 @@ defimpl Zot.Type, for: Zot.Type.Date do
 
     frag =
       case max.value do
-        {n, unit, :from_now} -> {:escaped, "#{n} #{unit}s from now"}
+        {n, unit, from: :now} -> {:escaped, "#{n} #{unit}s from now"}
         _ -> expected
       end
 

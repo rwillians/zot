@@ -13,7 +13,7 @@ defmodule Zot.Type.DateTime do
   @typedoc ~S"""
   Relative date time specification.
   """
-  @type relative :: {n :: integer, time_unit, :from_now}
+  @type relative :: {n :: integer, time_unit, from: :now}
 
   deftype min: [t: Zot.Parameterized.t(DateTime.t() | (-> DateTime.t()) | mfa | relative) | nil],
           max: [t: Zot.Parameterized.t(DateTime.t() | (-> DateTime.t()) | mfa | relative) | nil]
@@ -84,7 +84,7 @@ defimpl Zot.Type, for: Zot.Type.DateTime do
 
     frag =
       case min.value do
-        {n, unit, :from_now} -> {:escaped, "#{n} #{unit}s from now"}
+        {n, unit, from: :now} -> {:escaped, "#{n} #{unit}s from now"}
         _ -> expected
       end
 
@@ -100,7 +100,7 @@ defimpl Zot.Type, for: Zot.Type.DateTime do
 
     frag =
       case max.value do
-        {n, unit, :from_now} -> {:escaped, "#{n} #{unit}s from now"}
+        {n, unit, from: :now} -> {:escaped, "#{n} #{unit}s from now"}
         _ -> expected
       end
 
