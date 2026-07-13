@@ -87,4 +87,18 @@ defmodule Zot.Utils do
       value -> value
     end
   end
+
+  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+  # CALLBACKS                                                       #
+  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+  @doc false
+  def __drop_nil_fields__(map) when is_non_struct_map(map) do
+    map
+    |> Enum.reject(fn {_, value} -> is_nil(value) end)
+    |> Enum.into(%{})
+  end
+
+  def __drop_nil_fields__(keyword) when is_list(keyword),
+    do: Enum.reject(keyword, fn {_, value} -> is_nil(value) end)
 end

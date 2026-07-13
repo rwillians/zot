@@ -2656,7 +2656,7 @@ defmodule Zot do
 
   defp maybe_compact(type, opts) do
     case Keyword.get(opts, :compact, false) do
-      true -> transform(type, {__MODULE__, :__drop_nil_fields__, []})
+      true -> transform(type, {Zot.Utils, :__drop_nil_fields__, []})
       false -> type
     end
   end
@@ -2857,18 +2857,4 @@ defmodule Zot do
   def version(%Zot.Type.CIDR{} = type, value), do: Zot.Type.CIDR.version(type, value)
   def version(%Zot.Type.IP{} = type, value), do: Zot.Type.IP.version(type, value)
   def version(%Zot.Type.UUID{} = type, value), do: Zot.Type.UUID.version(type, value)
-
-  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-  # CALLBACKS                                                       #
-  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-  @doc false
-  def __drop_nil_fields__(map) when is_non_struct_map(map) do
-    map
-    |> Enum.reject(fn {_, value} -> is_nil(value) end)
-    |> Enum.into(%{})
-  end
-
-  def __drop_nil_fields__(keyword) when is_list(keyword),
-    do: Enum.reject(keyword, fn {_, value} -> is_nil(value) end)
 end
