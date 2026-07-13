@@ -21,6 +21,7 @@ defmodule Zot do
   require Zot.Type.Float
   require Zot.Type.Integer
   require Zot.Type.IP
+  require Zot.Type.Keyword
   require Zot.Type.List
   require Zot.Type.Literal
   require Zot.Type.Map
@@ -1119,6 +1120,85 @@ defmodule Zot do
   defdelegate ip(opts \\ []), to: Zot.Type.IP, as: :new
 
   @doc ~S"""
+  Creates a keyword list type where unknown fields are stripped out.
+
+  Works like `map/1` but takes a keyword list as input and produces a
+  keyword list as output, following the shape's key order. The shape
+  may be given as a map or a keyword list.
+
+  ## Examples
+
+      iex> Z.keyword(name: Z.string(), age: Z.integer())
+      iex> |> Z.parse([name: "Alice", age: 30])
+      {:ok, [name: "Alice", age: 30]}
+
+  The output follows the shape's key order, not the input's:
+
+      iex> Z.keyword(name: Z.string(), age: Z.integer())
+      iex> |> Z.parse([age: 30, name: "Alice"])
+      {:ok, [name: "Alice", age: 30]}
+
+  Unknown fields are stripped out:
+
+      iex> Z.keyword(name: Z.string())
+      iex> |> Z.parse([name: "Alice", age: 30])
+      {:ok, [name: "Alice"]}
+
+  The shape may be given as a map:
+
+      iex> Z.keyword(%{name: Z.string()})
+      iex> |> Z.parse([name: "Alice"])
+      {:ok, [name: "Alice"]}
+
+  Duplicated keys resolve to the first occurrence, matching
+  `Keyword.get/2` semantics:
+
+      iex> Z.keyword(name: Z.string())
+      iex> |> Z.parse([name: "Alice", name: "Bob"])
+      {:ok, [name: "Alice"]}
+
+  Issues are collected just like the map type:
+
+      iex> {:error, [issue]} =
+      iex>   Z.keyword(name: Z.string(), age: Z.integer(min: 18))
+      iex>   |> Z.parse([name: "Alice", age: 16])
+      iex>
+      iex> assert issue.path == [:age]
+      iex> assert Exception.message(issue) == "must be at least 18, got 16"
+
+      iex> Z.keyword(name: Z.string())
+      iex> |> Z.parse(%{name: "Alice"})
+      iex> |> unwrap_issue_message()
+      "expected type keyword, got map"
+
+  It can be converted into json schema:
+
+      iex> Z.keyword(name: Z.string(), age: Z.integer(min: 0))
+      iex> |> Z.describe("A person's profile.")
+      iex> |> Z.json_schema()
+      %{
+        "type" => "object",
+        "description" => "A person's profile.",
+        "properties" => %{
+          "name" => %{
+            "type" => "string"
+          },
+          "age" => %{
+            "type" => "integer",
+            "minimum" => 0
+          }
+        },
+        "required" => ["name", "age"],
+        "additionalProperties" => true
+      }
+
+  """
+  def keyword(shape)
+      when is_non_struct_map(shape)
+      when is_list(shape),
+      do: Zot.Type.Keyword.new(mode: :strip, shape: shape)
+
+  @doc ~S"""
   Creates a list type.
 
   ## Examples
@@ -1699,6 +1779,43 @@ defmodule Zot do
 
   """
   defdelegate slug_rfc1123(opts \\ []), to: Zot.Type.SlugRFC1123, as: :new
+
+  @doc ~S"""
+  Creates a keyword list type where unknown fields cause an issue.
+
+  ## Examples
+
+      iex> Z.strict_keyword(name: Z.string(), age: Z.integer(min: 18))
+      iex> |> Z.parse([name: "Alice", age: 18])
+      {:ok, [name: "Alice", age: 18]}
+
+      iex> {:error, [issue]} =
+      iex>   Z.strict_keyword(name: Z.string())
+      iex>   |> Z.parse([name: "Alice", age: 30])
+      iex>
+      iex> assert issue.path == ["age"]
+      iex> assert Exception.message(issue) == "unknown field"
+
+  It can be converted into json schema:
+
+      iex> Z.strict_keyword(name: Z.string())
+      iex> |> Z.json_schema()
+      %{
+        "type" => "object",
+        "properties" => %{
+          "name" => %{
+            "type" => "string"
+          }
+        },
+        "required" => ["name"],
+        "additionalProperties" => false
+      }
+
+  """
+  def strict_keyword(shape)
+      when is_non_struct_map(shape)
+      when is_list(shape),
+      do: Zot.Type.Keyword.new(mode: :strict, shape: shape)
 
   @doc ~S"""
   Creates a map type where unknown fields cause an issue.
@@ -2488,6 +2605,18 @@ defmodule Zot do
       iex> |> Z.parse(%{name: "Alice"})
       {:ok, %{name: "Alice"}}
 
+  It also works on keyword list types:
+
+      iex> Z.keyword(name: Z.string(), age: Z.integer())
+      iex> |> Z.partial()
+      iex> |> Z.parse([name: "Alice"])
+      {:ok, [name: "Alice", age: nil]}
+
+      iex> Z.keyword(name: Z.string(), age: Z.integer())
+      iex> |> Z.partial(compact: true)
+      iex> |> Z.parse([name: "Alice"])
+      {:ok, [name: "Alice"]}
+
   It can be converted into json schema:
 
       iex> Z.strict_map(%{name: Z.string(), age: Z.integer()})
@@ -2508,15 +2637,27 @@ defmodule Zot do
       }
 
   """
-  def partial(%Zot.Type.Map{} = type, opts \\ []) do
+  def partial(type, opts \\ [])
+
+  def partial(%Zot.Type.Keyword{} = type, opts) do
+    shape = Enum.map(type.shape, fn {key, t} -> {key, optional(t)} end)
+
+    maybe_compact(%{type | shape: shape}, opts)
+  end
+
+  def partial(%Zot.Type.Map{} = type, opts) do
     shape =
       type.shape
       |> Enum.map(fn {key, t} -> {key, optional(t)} end)
       |> Enum.into(%{})
 
+    maybe_compact(%{type | shape: shape}, opts)
+  end
+
+  defp maybe_compact(type, opts) do
     case Keyword.get(opts, :compact, false) do
-      true -> transform(%{type | shape: shape}, {__MODULE__, :__drop_nil_fields__, []})
-      false -> %{type | shape: shape}
+      true -> transform(type, {__MODULE__, :__drop_nil_fields__, []})
+      false -> type
     end
   end
 
@@ -2727,4 +2868,7 @@ defmodule Zot do
     |> Enum.reject(fn {_, value} -> is_nil(value) end)
     |> Enum.into(%{})
   end
+
+  def __drop_nil_fields__(keyword) when is_list(keyword),
+    do: Enum.reject(keyword, fn {_, value} -> is_nil(value) end)
 end
