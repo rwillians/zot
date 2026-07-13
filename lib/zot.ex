@@ -1627,8 +1627,24 @@ defmodule Zot do
       iex> assert issue.path == ["b"]
       iex> assert Exception.message(issue) == "expected type float, got string"
 
+  Alternatively, it takes a keyword list of options which is passed
+  unchanged to `Zot.Type.Record.new/1`, allowing you to customize the
+  keys type:
+
+      iex> Z.record(keys_type: Z.uuid(), values_type: Z.integer())
+      iex> |> Z.parse(%{"f81d4fae-7dec-11d0-a765-00a0c91e6bf6" => 1})
+      {:ok, %{"f81d4fae-7dec-11d0-a765-00a0c91e6bf6" => 1}}
+
+      iex> {:error, [issue]} =
+      iex>   Z.record(keys_type: Z.uuid(), values_type: Z.integer())
+      iex>   |> Z.parse(%{"not-a-uuid" => 1})
+      iex>
+      iex> assert issue.path == ["not-a-uuid"]
+      iex> assert Exception.message(issue) == "is invalid"
+
   """
   def record(type(_) = values_type), do: Zot.Type.Record.new(keys_type: string(trim: true, min: 1), values_type: values_type)
+  def record(opts) when is_list(opts), do: Zot.Type.Record.new(opts)
 
   @doc ~S"""
   Creates a set type (a list of unique items).
