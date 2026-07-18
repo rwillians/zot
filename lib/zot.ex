@@ -2599,37 +2599,33 @@ defmodule Zot do
   def output(%Zot.Type.IP{} = type, value), do: Zot.Type.IP.output(type, value)
 
   @doc ~S"""
-  Makes all fields optional. Optionally drops all nil fields from the
-  resulting map, after successfully parsed and validate.
+  Makes all fields optional and drops all nil fields from the resulting
+  map, after successfully parsed and validated.
 
   ## Examples
 
       iex> Z.strict_map(%{name: Z.string(), age: Z.integer()})
       iex> |> Z.partial()
       iex> |> Z.parse(%{name: "Alice"})
-      {:ok, %{name: "Alice", age: nil}}
+      {:ok, %{name: "Alice"}}
 
       iex> Z.strict_map(%{name: Z.string(), age: Z.integer()})
       iex> |> Z.partial()
       iex> |> Z.parse(%{})
-      {:ok, %{name: nil, age: nil}}
+      {:ok, %{}}
 
-  You can optionally compact the resulting map (drop nil fields):
+  Fields with their own default value have it overridden to nil, so
+  they are dropped when absent instead of falling back to the default:
 
-      iex> Z.strict_map(%{name: Z.string(), age: Z.integer()})
-      iex> |> Z.partial(compact: true)
-      iex> |> Z.parse(%{name: "Alice"})
-      {:ok, %{name: "Alice"}}
+      iex> Z.strict_map(%{name: Z.string(), role: Z.string() |> Z.default("user")})
+      iex> |> Z.partial()
+      iex> |> Z.parse(%{})
+      {:ok, %{}}
 
   It also works on keyword list types:
 
       iex> Z.keyword(name: Z.string(), age: Z.integer())
       iex> |> Z.partial()
-      iex> |> Z.parse([name: "Alice"])
-      {:ok, [name: "Alice", age: nil]}
-
-      iex> Z.keyword(name: Z.string(), age: Z.integer())
-      iex> |> Z.partial(compact: true)
       iex> |> Z.parse([name: "Alice"])
       {:ok, [name: "Alice"]}
 
@@ -2653,34 +2649,22 @@ defmodule Zot do
       }
 
   """
-  def partial(type, opts \\ [])
+  def partial(type)
 
-  def partial(%Zot.Type.Keyword{} = type, opts) do
-    shape = Enum.map(type.shape, fn {key, t} -> {key, optional(t)} end)
+  def partial(%Zot.Type.Keyword{} = type) do
+    shape = Enum.map(type.shape, fn {key, t} -> {key, default(optional(t), nil)} end)
 
-    maybe_compact(%{type | shape: shape}, opts)
+    transform(%{type | shape: shape}, {Zot.Utils, :__drop_nil_fields__, []})
   end
 
-  def partial(%Zot.Type.Map{} = type, opts) do
+  def partial(%Zot.Type.Map{} = type) do
     shape =
       type.shape
-      |> Enum.map(fn {key, t} -> {key, optional(t)} end)
+      |> Enum.map(fn {key, t} -> {key, default(optional(t), nil)} end)
       |> Enum.into(%{})
 
-    maybe_compact(%{type | shape: shape}, opts)
+    transform(%{type | shape: shape}, {Zot.Utils, :__drop_nil_fields__, []})
   end
-
-  defp maybe_compact(type, opts) do
-    case Keyword.get(opts, :compact, false) do
-      true -> transform(type, {Zot.Utils, :__drop_nil_fields__, []})
-      false -> type
-    end
-  end
-
-  @doc ~S"""
-  Alias for `partial/2` with option `compact: true`.
-  """
-  def partial_compact(type), do: partial(type, compact: true)
 
   @doc ~S"""
   Creates a new map type with only the specified keys from the original shape.

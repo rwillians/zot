@@ -87,24 +87,17 @@ defmodule Zot.Type.KeywordTest do
   end
 
   describe "partial" do
-    test "makes all fields optional" do
-      assert {:ok, [name: "Alice", age: nil]} =
-               Z.keyword(name: Z.string(), age: Z.integer())
-               |> Z.partial()
-               |> Z.parse(name: "Alice")
-    end
-
-    test "compact drops nil fields" do
+    test "makes all fields optional and drops nil fields" do
       assert {:ok, [age: 30]} =
                Z.keyword(name: Z.string(), age: Z.integer())
-               |> Z.partial(compact: true)
+               |> Z.partial()
                |> Z.parse(age: 30)
     end
 
-    test "partial_compact is an alias for partial with compact" do
+    test "overrides field defaults with nil" do
       assert {:ok, [name: "Alice"]} =
-               Z.keyword(name: Z.string(), age: Z.integer())
-               |> Z.partial_compact()
+               Z.keyword(name: Z.string(), role: Z.string() |> Z.default("user"))
+               |> Z.partial()
                |> Z.parse(name: "Alice")
     end
   end

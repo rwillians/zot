@@ -206,18 +206,18 @@ defmodule Zot.Type.MapTest do
   end
 
   describe "partial" do
-    test "makes all fields optional" do
+    test "makes all fields optional and drops nil fields" do
       type = Z.map(%{name: Z.string(), age: Z.int()}) |> Z.partial()
-
-      assert {:ok, %{name: nil, age: nil}} = type |> Z.parse(%{})
-      assert {:ok, %{name: "Alice", age: nil}} = type |> Z.parse(%{name: "Alice"})
-    end
-
-    test "partial with compact drops nil fields" do
-      type = Z.map(%{name: Z.string(), age: Z.int()}) |> Z.partial(compact: true)
 
       assert {:ok, %{}} = type |> Z.parse(%{})
       assert {:ok, %{name: "Alice"}} = type |> Z.parse(%{name: "Alice"})
+    end
+
+    test "overrides field defaults with nil" do
+      type = Z.map(%{name: Z.string(), role: Z.string() |> Z.default("user")}) |> Z.partial()
+
+      assert {:ok, %{}} = type |> Z.parse(%{})
+      assert {:ok, %{role: "admin"}} = type |> Z.parse(%{role: "admin"})
     end
   end
 
