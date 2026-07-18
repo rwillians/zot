@@ -2667,6 +2667,23 @@ defmodule Zot do
   end
 
   @doc ~S"""
+  Alias for `Z.map/1` piped into `Z.partial/1` — creates a map type where
+  all fields are optional and nil fields are dropped from the resulting map.
+
+  ## Examples
+
+      iex> Z.partial_map(%{name: Z.string(), age: Z.integer()})
+      iex> |> Z.parse(%{name: "Alice"})
+      {:ok, %{name: "Alice"}}
+
+      iex> Z.partial_map(%{name: Z.string(), age: Z.integer()})
+      iex> |> Z.parse(%{})
+      {:ok, %{}}
+
+  """
+  def partial_map(shape), do: partial(map(shape))
+
+  @doc ~S"""
   Creates a new map type with only the specified keys from the original shape.
 
   ## Examples
