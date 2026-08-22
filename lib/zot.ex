@@ -192,6 +192,103 @@ defmodule Zot do
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
   @doc ~S"""
+  Creates an absolute path type.
+
+  A valid absolute path starts with a forward slash, has non-empty
+  segments separated by single forward slashes and may optionally
+  end with a trailing forward slash.
+
+  ## Examples
+
+      iex> Z.absolute_path()
+      iex> |> Z.parse("/")
+      {:ok, "/"}
+
+      iex> Z.absolute_path()
+      iex> |> Z.parse("/usr/local/bin")
+      {:ok, "/usr/local/bin"}
+
+      iex> Z.absolute_path()
+      iex> |> Z.parse("/var/log/")
+      {:ok, "/var/log/"}
+
+      iex> Z.absolute_path()
+      iex> |> Z.parse("relative/path")
+      iex> |> unwrap_issue_message()
+      "is not a valid absolute path"
+
+      iex> Z.absolute_path()
+      iex> |> Z.parse("/foo//bar")
+      iex> |> unwrap_issue_message()
+      "is not a valid absolute path"
+
+  Can enforce a minimum length:
+
+      iex> Z.absolute_path(min: 5)
+      iex> |> Z.parse("/tmp")
+      iex> |> unwrap_issue_message()
+      "must be at least 5 characters long, got 4"
+
+      iex> Z.absolute_path()
+      iex> |> Z.min(5)
+      iex> |> Z.parse("/tmp")
+      iex> |> unwrap_issue_message()
+      "must be at least 5 characters long, got 4"
+
+  Can enforce a maximum length:
+
+      iex> Z.absolute_path(max: 10)
+      iex> |> Z.parse("/a/very/long/path")
+      iex> |> unwrap_issue_message()
+      "must be at most 10 characters long, got 17"
+
+      iex> Z.absolute_path()
+      iex> |> Z.max(10)
+      iex> |> Z.parse("/a/very/long/path")
+      iex> |> unwrap_issue_message()
+      "must be at most 10 characters long, got 17"
+
+  Can enforce an exact length:
+
+      iex> Z.absolute_path(length: 4)
+      iex> |> Z.parse("/usr/local")
+      iex> |> unwrap_issue_message()
+      "must be 4 characters long, got 10"
+
+      iex> Z.absolute_path()
+      iex> |> Z.length(4)
+      iex> |> Z.parse("/usr/local")
+      iex> |> unwrap_issue_message()
+      "must be 4 characters long, got 10"
+
+  You can specify for the string to be trimmed before validation:
+
+      iex> Z.absolute_path(trim: true)
+      iex> |> Z.parse("  /usr/local  ")
+      {:ok, "/usr/local"}
+
+      iex> Z.absolute_path()
+      iex> |> Z.trim()
+      iex> |> Z.parse("  /usr/local  ")
+      {:ok, "/usr/local"}
+
+  It can be converted into json schema:
+
+      iex> Z.absolute_path()
+      iex> |> Z.describe("A path to a file.")
+      iex> |> Z.example("/etc/hosts")
+      iex> |> Z.json_schema()
+      %{
+        "type" => "string",
+        "description" => "A path to a file.",
+        "examples" => ["/etc/hosts"],
+        "pattern" => "^/([^/]{1,}(/[^/]{1,}){0,}/?)?$"
+      }
+
+  """
+  def absolute_path(opts \\ []) when is_list(opts), do: regex(string(opts), ~r|^/([^/]{1,}(/[^/]{1,}){0,}/?)?$|, error: "is not a valid absolute path")
+
+  @doc ~S"""
   Creates a type that accepts any value.
 
   ## Examples
