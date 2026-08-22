@@ -192,101 +192,9 @@ defmodule Zot do
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
   @doc ~S"""
-  Creates an absolute path type.
-
-  A valid absolute path starts with a forward slash, has non-empty
-  segments separated by single forward slashes and may optionally
-  end with a trailing forward slash.
-
-  ## Examples
-
-      iex> Z.absolute_path()
-      iex> |> Z.parse("/")
-      {:ok, "/"}
-
-      iex> Z.absolute_path()
-      iex> |> Z.parse("/usr/local/bin")
-      {:ok, "/usr/local/bin"}
-
-      iex> Z.absolute_path()
-      iex> |> Z.parse("/var/log/")
-      {:ok, "/var/log/"}
-
-      iex> Z.absolute_path()
-      iex> |> Z.parse("relative/path")
-      iex> |> unwrap_issue_message()
-      "is not a valid absolute path"
-
-      iex> Z.absolute_path()
-      iex> |> Z.parse("/foo//bar")
-      iex> |> unwrap_issue_message()
-      "is not a valid absolute path"
-
-  Can enforce a minimum length:
-
-      iex> Z.absolute_path(min: 5)
-      iex> |> Z.parse("/tmp")
-      iex> |> unwrap_issue_message()
-      "must be at least 5 characters long, got 4"
-
-      iex> Z.absolute_path()
-      iex> |> Z.min(5)
-      iex> |> Z.parse("/tmp")
-      iex> |> unwrap_issue_message()
-      "must be at least 5 characters long, got 4"
-
-  Can enforce a maximum length:
-
-      iex> Z.absolute_path(max: 10)
-      iex> |> Z.parse("/a/very/long/path")
-      iex> |> unwrap_issue_message()
-      "must be at most 10 characters long, got 17"
-
-      iex> Z.absolute_path()
-      iex> |> Z.max(10)
-      iex> |> Z.parse("/a/very/long/path")
-      iex> |> unwrap_issue_message()
-      "must be at most 10 characters long, got 17"
-
-  Can enforce an exact length:
-
-      iex> Z.absolute_path(length: 4)
-      iex> |> Z.parse("/usr/local")
-      iex> |> unwrap_issue_message()
-      "must be 4 characters long, got 10"
-
-      iex> Z.absolute_path()
-      iex> |> Z.length(4)
-      iex> |> Z.parse("/usr/local")
-      iex> |> unwrap_issue_message()
-      "must be 4 characters long, got 10"
-
-  You can specify for the string to be trimmed before validation:
-
-      iex> Z.absolute_path(trim: true)
-      iex> |> Z.parse("  /usr/local  ")
-      {:ok, "/usr/local"}
-
-      iex> Z.absolute_path()
-      iex> |> Z.trim()
-      iex> |> Z.parse("  /usr/local  ")
-      {:ok, "/usr/local"}
-
-  It can be converted into json schema:
-
-      iex> Z.absolute_path()
-      iex> |> Z.describe("A path to a file.")
-      iex> |> Z.example("/etc/hosts")
-      iex> |> Z.json_schema()
-      %{
-        "type" => "string",
-        "description" => "A path to a file.",
-        "examples" => ["/etc/hosts"],
-        "pattern" => "^/([^/]{1,}(/[^/]{1,}){0,}/?)?$"
-      }
-
+  Alias to `path/1` with kind `:absolute`.
   """
-  def absolute_path(opts \\ []) when is_list(opts), do: regex(string(opts), ~r|^/([^/]{1,}(/[^/]{1,}){0,}/?)?$|, error: "is not a valid absolute path")
+  def absolute_path, do: path(kind: :absolute)
 
   @doc ~S"""
   Creates a type that accepts any value.
@@ -1639,6 +1547,140 @@ defmodule Zot do
   defdelegate numeric(opts \\ []), to: Zot.Type.Numeric, as: :new
 
   @doc ~S"""
+  Creates a path type.
+
+  A valid path has non-empty segments separated by single forward
+  slashes and may optionally end with a trailing forward slash.
+
+  ## Examples
+
+      iex> Z.path()
+      iex> |> Z.parse("lib/zot.ex")
+      {:ok, "lib/zot.ex"}
+
+      iex> Z.path()
+      iex> |> Z.parse("/usr/local/bin")
+      {:ok, "/usr/local/bin"}
+
+      iex> Z.path()
+      iex> |> Z.parse("/var/log/")
+      {:ok, "/var/log/"}
+
+      iex> Z.path()
+      iex> |> Z.parse("/foo//bar")
+      iex> |> unwrap_issue_message()
+      "is not a valid path"
+
+  Can be constrained to absolute paths (leading forward slash):
+
+      iex> Z.path(kind: :absolute)
+      iex> |> Z.parse("/usr/local/bin")
+      {:ok, "/usr/local/bin"}
+
+      iex> Z.path(kind: :absolute)
+      iex> |> Z.parse("usr/local/bin")
+      iex> |> unwrap_issue_message()
+      "is not a valid absolute path"
+
+  Or to relative paths (no leading forward slash):
+
+      iex> Z.path(kind: :relative)
+      iex> |> Z.parse("lib/zot.ex")
+      {:ok, "lib/zot.ex"}
+
+      iex> Z.path(kind: :relative)
+      iex> |> Z.parse("/lib/zot.ex")
+      iex> |> unwrap_issue_message()
+      "is not a valid relative path"
+
+  Can match a glob pattern (see `Zot.Utils.glob/1`); a string argument
+  is a shorthand for the `:glob` option:
+
+      iex> Z.path("**/*.{ex,exs}")
+      iex> |> Z.parse("lib/zot/type/path.ex")
+      {:ok, "lib/zot/type/path.ex"}
+
+      iex> Z.path(glob: "**/*.{ex,exs}")
+      iex> |> Z.parse("lib/zot/type/path.ex")
+      {:ok, "lib/zot/type/path.ex"}
+
+      iex> Z.path(glob: "**/*.{ex,exs}")
+      iex> |> Z.parse("assets/app.js")
+      iex> |> unwrap_issue_message()
+      "does not match pattern \"**/*.{ex,exs}\""
+
+      iex> Z.path(kind: :relative)
+      iex> |> Z.glob("test/**/*_test.exs")
+      iex> |> Z.parse("test/zot/type/path_test.exs")
+      {:ok, "test/zot/type/path_test.exs"}
+
+  Can enforce a minimum length:
+
+      iex> Z.path(min: 5)
+      iex> |> Z.parse("/tmp")
+      iex> |> unwrap_issue_message()
+      "must be at least 5 characters long, got 4"
+
+      iex> Z.path()
+      iex> |> Z.min(5)
+      iex> |> Z.parse("/tmp")
+      iex> |> unwrap_issue_message()
+      "must be at least 5 characters long, got 4"
+
+  Can enforce a maximum length:
+
+      iex> Z.path(max: 10)
+      iex> |> Z.parse("/a/very/long/path")
+      iex> |> unwrap_issue_message()
+      "must be at most 10 characters long, got 17"
+
+      iex> Z.path()
+      iex> |> Z.max(10)
+      iex> |> Z.parse("/a/very/long/path")
+      iex> |> unwrap_issue_message()
+      "must be at most 10 characters long, got 17"
+
+  Can enforce an exact length:
+
+      iex> Z.path(length: 4)
+      iex> |> Z.parse("/usr/local")
+      iex> |> unwrap_issue_message()
+      "must be 4 characters long, got 10"
+
+      iex> Z.path()
+      iex> |> Z.length(4)
+      iex> |> Z.parse("/usr/local")
+      iex> |> unwrap_issue_message()
+      "must be 4 characters long, got 10"
+
+  It can be converted into json schema:
+
+      iex> Z.path(kind: :absolute)
+      iex> |> Z.describe("A path to a file.")
+      iex> |> Z.example("/etc/hosts")
+      iex> |> Z.json_schema()
+      %{
+        "type" => "string",
+        "description" => "A path to a file.",
+        "examples" => ["/etc/hosts"],
+        "pattern" => "^/([^/]{1,}(/[^/]{1,}){0,}/?)?$"
+      }
+
+  The glob pattern takes precedence in the json schema:
+
+      iex> Z.path(kind: :relative, glob: "*.ex")
+      iex> |> Z.json_schema()
+      %{
+        "type" => "string",
+        "pattern" => "^[^/]{0,}\\.ex$"
+      }
+
+  """
+  def path(glob_or_opts \\ [])
+  def path(glob) when is_binary(glob), do: Zot.Type.Path.new(glob: glob)
+  def path(opts) when is_list(opts), do: Zot.Type.Path.new(opts)
+
+  @doc ~S"""
   Creates a phone number type.
 
   ## Examples
@@ -1742,6 +1784,11 @@ defmodule Zot do
   """
   def record(type(_) = values_type), do: Zot.Type.Record.new(keys_type: string(trim: true, min: 1), values_type: values_type)
   def record(opts) when is_list(opts), do: Zot.Type.Record.new(opts)
+
+  @doc ~S"""
+  Alias to `path/1` with kind `:relative`.
+  """
+  def relative_path, do: path(kind: :relative)
 
   @doc ~S"""
   Creates a set type (a list of unique items).
@@ -2613,6 +2660,13 @@ defmodule Zot do
   defdelegate forbidden_ports(type, value, opts \\ []), to: Zot.Type.URL
 
   @doc ~S"""
+  Enforces that the path matches the given glob pattern.
+
+  See `path/1` for more details.
+  """
+  defdelegate glob(type, value, opts \\ []), to: Zot.Type.Path
+
+  @doc ~S"""
   Defines the behavior for leading plus signs in phone numbers.
 
   See `phone/1` for more details.
@@ -2624,6 +2678,7 @@ defmodule Zot do
   """
   def length(type, value, opts \\ [])
   def length(%Zot.Type.List{} = type, value, opts), do: Zot.Type.List.length(type, value, opts)
+  def length(%Zot.Type.Path{} = type, value, opts), do: Zot.Type.Path.length(type, value, opts)
   def length(%Zot.Type.SlugRFC1123{} = type, value, opts), do: Zot.Type.SlugRFC1123.length(type, value, opts)
   def length(%Zot.Type.String{} = type, value, opts), do: Zot.Type.String.length(type, value, opts)
 
@@ -2646,6 +2701,7 @@ defmodule Zot do
   def max(%Zot.Type.List{} = type, value, opts), do: Zot.Type.List.max(type, value, opts)
   def max(%Zot.Type.Number{} = type, value, opts), do: Zot.Type.Number.max(type, value, opts)
   def max(%Zot.Type.Numeric{} = type, value, opts), do: Zot.Type.Numeric.max(type, value, opts)
+  def max(%Zot.Type.Path{} = type, value, opts), do: Zot.Type.Path.max(type, value, opts)
   def max(%Zot.Type.SlugRFC1123{} = type, value, opts), do: Zot.Type.SlugRFC1123.max(type, value, opts)
   def max(%Zot.Type.String{} = type, value, opts), do: Zot.Type.String.max(type, value, opts)
 
@@ -2661,6 +2717,7 @@ defmodule Zot do
   def min(%Zot.Type.List{} = type, value, opts), do: Zot.Type.List.min(type, value, opts)
   def min(%Zot.Type.Number{} = type, value, opts), do: Zot.Type.Number.min(type, value, opts)
   def min(%Zot.Type.Numeric{} = type, value, opts), do: Zot.Type.Numeric.min(type, value, opts)
+  def min(%Zot.Type.Path{} = type, value, opts), do: Zot.Type.Path.min(type, value, opts)
   def min(%Zot.Type.SlugRFC1123{} = type, value, opts), do: Zot.Type.SlugRFC1123.min(type, value, opts)
   def min(%Zot.Type.String{} = type, value, opts), do: Zot.Type.String.min(type, value, opts)
 

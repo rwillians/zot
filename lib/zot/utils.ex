@@ -49,6 +49,50 @@ defmodule Zot.Utils do
       do: Keyword.get(opts, :coerce) || false
 
   @doc ~S"""
+  Compiles a glob pattern into an anchored regex.
+
+  `*` matches any run of characters short of a `/`, `?` matches exactly
+  one of the same, `**` also crosses slashes, `[a-c]` and `[!a-c]` are
+  character classes, and `{jpg,png}` matches either alternative.
+  Everything else means itself.
+  """
+  @spec glob(glob) :: Regex.t()
+        when glob: String.t()
+
+  def glob(glob)
+      when is_binary(glob),
+      do: Regex.compile!("^" <> translate(glob) <> "$")
+
+  defp translate(<<>>), do: ""
+  defp translate("**/" <> rest), do: "(?:.{0,}/)?" <> translate(rest)
+  defp translate("**" <> rest), do: ".{0,}" <> translate(rest)
+  defp translate("*" <> rest), do: "[^/]{0,}" <> translate(rest)
+  defp translate("?" <> rest), do: "[^/]" <> translate(rest)
+  defp translate("[!" <> rest), do: klass(rest, "[^")
+  defp translate("[" <> rest), do: klass(rest, "[")
+  defp translate("{" <> rest), do: alternatives(rest)
+  defp translate(<<char::utf8, rest::binary>>), do: Regex.escape(<<char::utf8>>) <> translate(rest)
+
+  defp klass(rest, open) do
+    case String.split(rest, "]", parts: 2) do
+      [inside, rest] -> open <> String.replace(inside, "\\", "\\\\") <> "]" <> translate(rest)
+      [rest] -> "\\[" <> translate(bang_of(open) <> rest)
+    end
+  end
+
+  defp bang_of("[^"), do: "!"
+  defp bang_of("["), do: ""
+
+  #  ↓ each alternative is a glob of its own, so a `*` inside braces
+  #    still means what it means outside them
+  defp alternatives(rest) do
+    case String.split(rest, "}", parts: 2) do
+      [inside, rest] -> "(?:" <> Enum.map_join(String.split(inside, ","), "|", &translate/1) <> ")" <> translate(rest)
+      [rest] -> "\\{" <> translate(rest)
+    end
+  end
+
+  @doc ~S"""
   Parses an float from the given value.
   """
   @spec parse_float(term) :: {:ok, float} | :error
