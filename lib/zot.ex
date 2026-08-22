@@ -930,6 +930,75 @@ defmodule Zot do
   defdelegate cidr(opts \\ []), to: Zot.Type.CIDR, as: :new
 
   @doc ~S"""
+  Creates a hostname type.
+
+  A valid hostname is a sequence of dot-separated RFC 1123 labels.
+  Each label contains only alphanumeric characters and hyphens, must
+  start and end with an alphanumeric character and is at most 63
+  characters long. The hostname as a whole is at most 253 characters
+  long.
+
+  ## Examples
+
+      iex> Z.hostname()
+      iex> |> Z.parse("example.com")
+      {:ok, "example.com"}
+
+      iex> Z.hostname()
+      iex> |> Z.parse("api.staging.example.com")
+      {:ok, "api.staging.example.com"}
+
+      iex> Z.hostname()
+      iex> |> Z.parse("localhost")
+      {:ok, "localhost"}
+
+      iex> Z.hostname()
+      iex> |> Z.parse("-example.com")
+      iex> |> unwrap_issue_message()
+      "is not a valid hostname"
+
+      iex> Z.hostname()
+      iex> |> Z.parse("exa mple.com")
+      iex> |> unwrap_issue_message()
+      "is not a valid hostname"
+
+  Loopback hostnames are allowed by default but can be forbidden:
+
+      iex> Z.hostname(allow_loopback: false)
+      iex> |> Z.parse("localhost")
+      iex> |> unwrap_issue_message()
+      "loopback addresses are not allowed"
+
+      iex> Z.hostname()
+      iex> |> Z.allow_loopback(false)
+      iex> |> Z.parse("app.localhost")
+      iex> |> unwrap_issue_message()
+      "loopback addresses are not allowed"
+
+      iex> Z.hostname(allow_loopback: false)
+      iex> |> Z.parse("127.0.0.1")
+      iex> |> unwrap_issue_message()
+      "loopback addresses are not allowed"
+
+  It can be converted into json schema:
+
+      iex> Z.hostname()
+      iex> |> Z.describe("A server hostname.")
+      iex> |> Z.example("example.com")
+      iex> |> Z.json_schema()
+      %{
+        "type" => "string",
+        "description" => "A server hostname.",
+        "examples" => ["example.com"],
+        "format" => "hostname",
+        "maxLength" => 253,
+        "pattern" => "^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?){0,}$"
+      }
+
+  """
+  defdelegate hostname(opts \\ []), to: Zot.Type.Hostname, as: :new
+
+  @doc ~S"""
   Alias to `integer/1`.
   """
   defdelegate int(opts \\ []), to: Zot.Type.Integer, as: :new
@@ -2568,7 +2637,9 @@ defmodule Zot do
 
   See `url/1` for more details.
   """
-  defdelegate allow_loopback(type, value \\ true), to: Zot.Type.URL
+  def allow_loopback(type, value \\ true)
+  def allow_loopback(%Zot.Type.Hostname{} = type, value), do: Zot.Type.Hostname.allow_loopback(type, value)
+  def allow_loopback(%Zot.Type.URL{} = type, value), do: Zot.Type.URL.allow_loopback(type, value)
 
   @doc ~S"""
   Constraint phone numbers to a limited set of country codes.
